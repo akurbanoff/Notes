@@ -1,11 +1,13 @@
 package com.example.notes
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,10 +15,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CreateNewFolder
@@ -38,6 +43,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,6 +56,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.ViewModel
@@ -70,6 +77,7 @@ import com.example.notes.ui.theme.Orange
 import com.example.notes.view_models.FolderViewModel
 import com.example.notes.view_models.NotesViewModel
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 //import com.google.android.material.color.DynamicColors
 
@@ -125,20 +133,19 @@ fun InitMainNavigation(folderViewModel: FolderViewModel, notesViewModel: NotesVi
     val navigator = rememberNavController()
     var folderTitle: String? = "Folders"
 
-    NavHost(navController = navigator, startDestination = "main"){
-        composable("main"){ MainScreen(navigator = navigator, folderViewModel = folderViewModel)}
-        composable("folder/{name}", arguments = listOf(navArgument("name"){type = NavType.StringType})){
+    NavHost(navController = navigator, startDestination = NavigationRoutes.MainScreen.route){
+        composable(NavigationRoutes.MainScreen.route){ MainScreen(navigator = navigator, folderViewModel = folderViewModel)}
+        composable(NavigationRoutes.FolderDetail.route + "/{name}", arguments = listOf(navArgument("name"){type = NavType.StringType})){
             backStackEntry -> backStackEntry.arguments?.let {
                 folderTitle = it.getString("name")
                 FolderNotesScreen(title = folderTitle, navigator = navigator, notesViewModel = notesViewModel)
         } }
-        composable("note/{index}", arguments = listOf(navArgument("index"){type = NavType.IntType})){
+        composable(NavigationRoutes.NoteDetail.route + "/{index}", arguments = listOf(navArgument("index"){type = NavType.IntType})){
             backStackEntry -> backStackEntry.arguments?.let {
                 val index = it.getInt("index")
                 NotesInsideScreen(index = index, navigator = navigator, title = folderTitle, notesViewModel = notesViewModel)
-        }
-        }
-        composable("new_note"){ NotesInsideScreen(navigator = navigator, title = folderTitle, newNote = true, notesViewModel = notesViewModel) }
+        } }
+        composable(NavigationRoutes.NewNote.route){ NotesInsideScreen(navigator = navigator, title = folderTitle, newNote = true, notesViewModel = notesViewModel) }
         //composable("show_folder_dialog"){ CreateFolderDialog(folderViewModel = folderViewModel)}
     }
 }
@@ -252,11 +259,12 @@ fun SearchBar(modifier: Modifier = Modifier) {
     )
 }
 
+@SuppressLint("StateFlowValueCalledInComposition")
 @Composable
 fun FolderList(modifier: Modifier = Modifier, navigator: NavHostController, folderViewModel: FolderViewModel) {
     val deletedFolder = Folder(title = "Recently Deleted")
     var showFolderList by remember{ mutableStateOf(true) }
-    val folderList = folderViewModel.getAll()
+    val state by folderViewModel.state.collectAsState()
 
     Column {
         FolderGroupHeadline(modifier = Modifier
@@ -266,8 +274,7 @@ fun FolderList(modifier: Modifier = Modifier, navigator: NavHostController, fold
             }, showFolderList = showFolderList)
         if(showFolderList) {
             LazyColumn() {
-                itemsIndexed(folderList) { _, item ->
-                    Log.d("debug", folderList.toString())
+                itemsIndexed(state.folders) { _, item ->
                     FolderElement(title = item.title, icon = Icons.Default.FolderOpen, navigator = navigator)
                 }
             }
@@ -286,7 +293,7 @@ fun FolderElement(modifier: Modifier = Modifier, title: String, icon: ImageVecto
             .fillMaxWidth()
             .padding(top = 0.dp)
             .clickable {
-                navigator.navigate("folder/$title")
+                navigator.navigate(NavigationRoutes.FolderDetail.withArgs(title))//("folder/$title")
             },
         colors = CardDefaults.cardColors(
             containerColor = Color.DarkGray,
@@ -360,7 +367,7 @@ fun BottomBar(modifier: Modifier = Modifier, folderViewModel: FolderViewModel, n
                 modifier = Modifier
                     .size(36.dp)
                     .clickable {
-                        navigator.navigate("new_note")
+                        navigator.navigate(NavigationRoutes.NewNote.route)
                     },
                 colorFilter = ColorFilter.tint(Orange)
             )
@@ -373,16 +380,18 @@ fun BottomBar(modifier: Modifier = Modifier, folderViewModel: FolderViewModel, n
 fun CreateFolderDialog(modifier: Modifier = Modifier, folderViewModel: FolderViewModel, navigator: NavHostController) {
     var countEmptyFolders = 1
 
-    for (folder in folderViewModel.getAll()){
-        if(folder.title.contains("New Folder")){
+    for (folder in folderViewModel.getAll()) {
+        if (folder.title.contains("New Folder")) {
             countEmptyFolders += 1
         }
     }
 
     var DefaultFolderName = "New Folder $countEmptyFolders"
-    var folderName = ""
+    var folderName by remember {
+        mutableStateOf("")
+    }
 
-    Dialog(onDismissRequest = {folderViewModel.openFolderDialog = false}) {
+    Dialog(onDismissRequest = { folderViewModel.openFolderDialog = false }) {
         Column(
             modifier = modifier.padding(8.dp)
         ) {
@@ -391,7 +400,7 @@ fun CreateFolderDialog(modifier: Modifier = Modifier, folderViewModel: FolderVie
                     .height(36.dp)
                     .fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
-            ){
+            ) {
                 Text(
                     text = "Cancel",
                     color = Orange,
@@ -413,7 +422,7 @@ fun CreateFolderDialog(modifier: Modifier = Modifier, folderViewModel: FolderVie
             TextField(
                 value = "New Folder $countEmptyFolders",
                 modifier = Modifier.fillMaxWidth(),
-                onValueChange = {name -> folderName = name},
+                onValueChange = { folderName = it },
                 trailingIcon = {
                     Image(
                         imageVector = Icons.Default.Cancel,

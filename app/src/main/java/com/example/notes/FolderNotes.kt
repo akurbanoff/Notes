@@ -92,9 +92,9 @@ fun NotesTopBar(
                             if(lastNote.title.isEmpty() && lastNote.textBody.isEmpty()){
                                 notesViewModel.deleteNote(lastNote.id)
                             }
-                            navigator.navigate("folder/$title")
+                            navigator.navigate(NavigationRoutes.FolderDetail.withArgs(title))
                         } else {
-                            navigator.navigate("main")
+                            navigator.navigate(NavigationRoutes.MainScreen.route)
                         }
                     }
                 )
@@ -129,9 +129,9 @@ fun NotesTopBar(
                         if(lastNote.title.isEmpty() && lastNote.textBody.isEmpty()){
                             notesViewModel.deleteNote(lastNote.id)
                         }
-                        navigator.navigate("folder/$title")
+                        navigator.navigate(NavigationRoutes.FolderDetail.withArgs(title))
                     } else {
-                        navigator.navigate("main")
+                        navigator.navigate(NavigationRoutes.MainScreen.route)
                     }
                 }
             ) {
@@ -169,7 +169,7 @@ fun NotesBottomBar(modifier: Modifier = Modifier, folder: String, navigator: Nav
                 modifier = Modifier
                     .size(36.dp)
                     .clickable {
-                        navigator.navigate("new_note")
+                        navigator.navigate(NavigationRoutes.NewNote.route)
                     }
             )
         }
@@ -196,7 +196,7 @@ fun Note(title: String, date: String, firstLine: String, index: Int, navigator: 
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                navigator.navigate("note/$index")
+                navigator.navigate(NavigationRoutes.NoteDetail.withArgs(index))
             },
         elevation = CardDefaults.cardElevation(
             defaultElevation = 6.dp

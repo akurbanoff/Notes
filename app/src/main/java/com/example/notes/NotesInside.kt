@@ -19,6 +19,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -66,12 +70,16 @@ fun NoteBody(modifier: Modifier = Modifier, index: Int, parentFolder: String, no
         currentNote = notesViewModel.getNote(index)
     }
 
-    val title: String = if (currentNote.title.isEmpty()) "" else currentNote.title
-    val body : String = if (currentNote.textBody.isEmpty()) "" else currentNote.textBody
+    var title: String by remember {
+        mutableStateOf(if (currentNote.title.isEmpty()) "" else currentNote.title)
+    }
+    var body : String by remember {
+        mutableStateOf(if (currentNote.textBody.isEmpty()) "" else currentNote.textBody)
+    }
     Column {
         TextField(
             value = if(title.isEmpty()) "" else title,
-            onValueChange = { newTitle -> notesViewModel.updateNoteTitle(id = index, title = newTitle) },
+            onValueChange = { title = it },//notesViewModel.updateNoteTitle(id = index, title = newTitle) },
             modifier = Modifier.fillMaxWidth(),
             colors = TextFieldDefaults.textFieldColors(
                 containerColor = Color.Transparent,
@@ -82,7 +90,7 @@ fun NoteBody(modifier: Modifier = Modifier, index: Int, parentFolder: String, no
         TextField(
             value = body,
             //modifier = Modifier.verticalScroll(state = )
-            onValueChange = { newBody -> notesViewModel.updateNoteBody(id = index, body = newBody) },
+            onValueChange = { body = it },//notesViewModel.updateNoteBody(id = index, body = newBody) },
             //label = { Text("Введите текст заметки") },
             modifier = Modifier.fillMaxWidth(),
             colors = TextFieldDefaults.textFieldColors(

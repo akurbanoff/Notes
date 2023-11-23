@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface FolderDao {
     @Query("select * from folders")
-    fun getAll() : LiveData<List<Folder>>
+    fun getAll() : Flow<List<Folder>>
 
     @Insert
     fun createNewFolder(folder: Folder)
@@ -20,4 +20,7 @@ interface FolderDao {
 
     @Query("select * from folders where title = :title")
     fun getFolderByTitle(title: String): Folder
+
+    @Query("delete from folders where title = :title")
+    fun deleteFolderByTitle(title: String)
 }
