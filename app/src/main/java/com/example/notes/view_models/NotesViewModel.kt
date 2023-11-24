@@ -16,6 +16,29 @@ open class NotesViewModel(private val dao: NoteDao): ViewModel() {
     @OptIn(ExperimentalCoroutinesApi::class)
     suspend fun <T> Flow<List<T>>.flattenToList() = flatMapConcat { it.asFlow() }.toList()
 
+    private val _sortType = MutableStateFlow(SortType.NONE)
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val _notes = _sortType
+        .flatMapLatest {value: SortType ->
+            when(value){
+                SortType.NONE -> dao.getAll()
+                SortType.DATE_EDITED -> TODO()
+                SortType.DATE_CREATED -> TODO()
+                SortType.TITLE -> TODO()
+                SortType.NEWEST_FIRST -> TODO()
+                SortType.OLDEST_FIRST -> TODO()
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
+
+    private val _state = MutableStateFlow(NoteState())
+    val state = combine(_state, _sortType, _notes) { state, sortType, notes ->
+        state.copy(
+            notes = notes,
+            sortType = sortType
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), NoteState())
+
     fun getAll(parentFolder: String): List<Note>{
         var listOfNotes: List<Note> = emptyList()
         viewModelScope.launch {
