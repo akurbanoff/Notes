@@ -1,4 +1,4 @@
-package com.example.notes
+package com.example.notes.utils
 
 sealed class NavigationRoutes(val route: String){
     object MainScreen: NavigationRoutes("main_screen")

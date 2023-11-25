@@ -1,4 +1,4 @@
-package com.example.notes
+package com.example.notes.utils
 
 enum class SortType {
     NONE,

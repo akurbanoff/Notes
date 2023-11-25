@@ -10,5 +10,6 @@ import androidx.room.PrimaryKey
 data class Folder (
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val title: String
+    val title: String,
+    //var countNotes: Int = 0
 )

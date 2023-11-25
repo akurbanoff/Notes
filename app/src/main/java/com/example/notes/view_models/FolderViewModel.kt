@@ -1,13 +1,13 @@
 package com.example.notes.view_models
 
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.notes.FolderState
-import com.example.notes.SortType
+import com.example.notes.utils.FolderState
+import com.example.notes.utils.SortType
 import com.example.notes.db.models.Folder
 import com.example.notes.db.dao.FolderDao
 import kotlinx.coroutines.Dispatchers
@@ -16,6 +16,7 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class FolderViewModel(private val dao: FolderDao) : ViewModel() {
@@ -47,20 +49,37 @@ class FolderViewModel(private val dao: FolderDao) : ViewModel() {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
 
     private val _state = MutableStateFlow(FolderState())
-    val state = combine(_state, _sortType, _folders) { state, sortType, folders ->
+    val folderState = combine(_state, _sortType, _folders) { state, sortType, folders ->
         state.copy(
             folders = folders,
             sortType = sortType
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), FolderState())
 
+
+//    private val _folderState = MutableStateFlow(emptyList<Folder>())
+//    val folderState: StateFlow<List<Folder>> = _folderState.asStateFlow()
+//
+//    init {
+//        _folderState.update {
+//            getAll()
+//        }
+//    }
+
     fun getAll(): List<Folder> {
-        var folders: List<Folder> = emptyList()
+        var folders: List<Folder> = emptyList<Folder>()
         viewModelScope.launch {
             folders = dao.getAll().flattenToList()
         }
+
         return folders
     }
+
+//    fun refresh(){
+//        _folderState.update {
+//            getAll()
+//        }
+//    }
 
     fun createFolder(folder: Folder){
         viewModelScope.launch(context = Dispatchers.IO) {
@@ -92,5 +111,7 @@ class FolderViewModel(private val dao: FolderDao) : ViewModel() {
             dao.deleteFolderByTitle(title = title)
         }
     }
+
+
 
 }

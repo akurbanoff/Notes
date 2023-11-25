@@ -2,26 +2,24 @@ package com.example.notes
 
 import android.annotation.SuppressLint
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CreateNewFolder
@@ -55,14 +53,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.Popup
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -74,10 +69,9 @@ import com.example.notes.db.AppDatabase
 import com.example.notes.db.models.Folder
 import com.example.notes.ui.theme.NotesTheme
 import com.example.notes.ui.theme.Orange
+import com.example.notes.utils.NavigationRoutes
 import com.example.notes.view_models.FolderViewModel
 import com.example.notes.view_models.NotesViewModel
-import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 
 //import com.google.android.material.color.DynamicColors
 
@@ -131,13 +125,13 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun InitMainNavigation(folderViewModel: FolderViewModel, notesViewModel: NotesViewModel){
     val navigator = rememberNavController()
-    var folderTitle: String? = "Folders"
+    var folderTitle = "Folders"
 
     NavHost(navController = navigator, startDestination = NavigationRoutes.MainScreen.route){
         composable(NavigationRoutes.MainScreen.route){ MainScreen(navigator = navigator, folderViewModel = folderViewModel)}
         composable(NavigationRoutes.FolderDetail.route + "/{name}", arguments = listOf(navArgument("name"){type = NavType.StringType})){
             backStackEntry -> backStackEntry.arguments?.let {
-                folderTitle = it.getString("name")
+                folderTitle = it.getString("name")!!
                 FolderNotesScreen(title = folderTitle, navigator = navigator, notesViewModel = notesViewModel)
         } }
         composable(NavigationRoutes.NoteDetail.route + "/{index}", arguments = listOf(navArgument("index"){type = NavType.IntType})){
@@ -175,7 +169,8 @@ fun MainScreen(navigator: NavHostController, folderViewModel: FolderViewModel) {
                 title = sharedFolder.title,
                 icon = Icons.Default.FolderOpen,
                 modifier = Modifier.padding(top = 20.dp),
-                navigator = navigator
+                navigator = navigator,
+                folderViewModel = folderViewModel
             )
             //FolderGroupHeadline(modifier = Modifier.padding(top = 12.dp))
             FolderList(navigator = navigator, folderViewModel = folderViewModel)
@@ -212,7 +207,7 @@ fun FolderGroupHeadline(modifier: Modifier = Modifier, showFolderList: Boolean) 
 fun TopBar(modifier: Modifier = Modifier) {
     TopAppBar(
         title = {},
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .height(22.dp),
         actions = {
@@ -264,27 +259,39 @@ fun SearchBar(modifier: Modifier = Modifier) {
 fun FolderList(modifier: Modifier = Modifier, navigator: NavHostController, folderViewModel: FolderViewModel) {
     val deletedFolder = Folder(title = "Recently Deleted")
     var showFolderList by remember{ mutableStateOf(true) }
-    val state by folderViewModel.state.collectAsState()
+    val state by folderViewModel.folderState.collectAsState()
 
-    Column {
+    Column(
+        modifier = modifier
+    ) {
         FolderGroupHeadline(modifier = Modifier
             .padding(top = 12.dp)
             .clickable {
                 showFolderList = !showFolderList
             }, showFolderList = showFolderList)
         if(showFolderList) {
-            LazyColumn() {
+            LazyColumn{
                 itemsIndexed(state.folders) { _, item ->
-                    FolderElement(title = item.title, icon = Icons.Default.FolderOpen, navigator = navigator)
+                    FolderElement(title = item.title, icon = Icons.Default.FolderOpen, navigator = navigator, folderViewModel = folderViewModel)
                 }
             }
-            FolderElement(title = deletedFolder.title, icon = Icons.Default.Delete, navigator = navigator)
+            FolderElement(title = deletedFolder.title, icon = Icons.Default.Delete, navigator = navigator, folderViewModel = folderViewModel)
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun FolderElement(modifier: Modifier = Modifier, title: String, icon: ImageVector, navigator: NavHostController) {
+fun FolderElement(modifier: Modifier = Modifier, title: String, icon: ImageVector, navigator: NavHostController, folderViewModel: FolderViewModel) {
+    var showMenu by remember {
+        mutableStateOf(false)
+    }
+//    Box(modifier = modifier.
+//    pointerInput(Unit) {
+//        detectTapGestures(onLongPress = {
+//            showMenu = false
+//        })
+//    }){
     ElevatedCard(
         elevation = CardDefaults.cardElevation(
             defaultElevation = 6.dp
@@ -292,9 +299,12 @@ fun FolderElement(modifier: Modifier = Modifier, title: String, icon: ImageVecto
         modifier = modifier
             .fillMaxWidth()
             .padding(top = 0.dp)
-            .clickable {
-                navigator.navigate(NavigationRoutes.FolderDetail.withArgs(title))//("folder/$title")
-            },
+            .combinedClickable(
+                onClick = { navigator.navigate(NavigationRoutes.FolderDetail.withArgs(title)) },
+                onLongClick = {
+                    showMenu = true
+                }//("folder/$title")
+            ),
         colors = CardDefaults.cardColors(
             containerColor = Color.DarkGray,
             contentColor = Color.White
@@ -303,12 +313,12 @@ fun FolderElement(modifier: Modifier = Modifier, title: String, icon: ImageVecto
     ) {
         Row(
             modifier = Modifier.padding(8.dp)
-        ){
+        ) {
             Image(
                 imageVector = icon,
                 contentDescription = null,
                 colorFilter = ColorFilter.tint(Orange)
-                )
+            )
             Text(
                 text = title,
                 modifier = Modifier.padding(start = 8.dp)
@@ -330,13 +340,50 @@ fun FolderElement(modifier: Modifier = Modifier, title: String, icon: ImageVecto
             }
         }
     }
+    if(showMenu){
+        Popup(
+            onDismissRequest = {showMenu = false}
+        ) {
+            Column {
+                ActionItem(text = "Delete", icon = Icons.Default.Delete, iconColor = Color.Red) {
+                    folderViewModel.deleteFolder(title)
+                    showMenu = false
+                }
+            }
+        }
+    }
 }
+
+@Composable
+fun ActionItem(text: String, icon: ImageVector, iconColor: Color = Color.Black, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.padding(8.dp).background(Color.White).clickable(onClick = onClick)
+    ) {
+        Text(
+            text = text,
+            color = Color.Black
+        )
+        Icon(
+            imageVector = icon, contentDescription = null, tint = iconColor
+        )
+    }
+}
+
+//@Preview(showBackground = true)
+//@Composable
+//fun MenuPrev() {
+//    NotesTheme {
+//        ActionItem(text = "Delete", icon = Icons.Default.Delete) {
+//            false
+//        }
+//    }
+//}
 
 @Composable
 fun BottomBar(modifier: Modifier = Modifier, folderViewModel: FolderViewModel, navigator: NavHostController) {
 
     if (folderViewModel.openFolderDialog){
-        CreateFolderDialog(folderViewModel = folderViewModel, navigator = navigator)
+        CreateFolderDialog(folderViewModel = folderViewModel)
     }
 
     BottomAppBar(
@@ -377,18 +424,18 @@ fun BottomBar(modifier: Modifier = Modifier, folderViewModel: FolderViewModel, n
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateFolderDialog(modifier: Modifier = Modifier, folderViewModel: FolderViewModel, navigator: NavHostController) {
+fun CreateFolderDialog(modifier: Modifier = Modifier, folderViewModel: FolderViewModel) {
     var countEmptyFolders = 1
+    val state by folderViewModel.folderState.collectAsState()
 
-    for (folder in folderViewModel.getAll()) {
+    for (folder in state.folders) {
         if (folder.title.contains("New Folder")) {
             countEmptyFolders += 1
         }
     }
 
-    var DefaultFolderName = "New Folder $countEmptyFolders"
     var folderName by remember {
-        mutableStateOf("")
+        mutableStateOf("New Folder $countEmptyFolders")
     }
 
     Dialog(onDismissRequest = { folderViewModel.openFolderDialog = false }) {
@@ -420,7 +467,7 @@ fun CreateFolderDialog(modifier: Modifier = Modifier, folderViewModel: FolderVie
                 )
             }
             TextField(
-                value = "New Folder $countEmptyFolders",
+                value = folderName,
                 modifier = Modifier.fillMaxWidth(),
                 onValueChange = { folderName = it },
                 trailingIcon = {
@@ -445,12 +492,12 @@ fun CreateFolderDialog(modifier: Modifier = Modifier, folderViewModel: FolderVie
 //}
 
 //@Preview(showBackground = true)
-@Composable
-fun FolderGroupHeadlinePreview() {
-    NotesTheme {
-        FolderGroupHeadline(showFolderList = true)
-    }
-}
+//@Composable
+//fun FolderGroupHeadlinePreview() {
+//    NotesTheme {
+//        FolderGroupHeadline(showFolderList = true)
+//    }
+//}
 
 //@Preview(showBackground = true)
 //@Composable
@@ -477,17 +524,17 @@ fun FolderGroupHeadlinePreview() {
 //}
 
 //@Preview(showBackground = true)
-@Composable
-fun SearchBarPreview() {
-    NotesTheme {
-        SearchBar()
-    }
-}
+//@Composable
+//fun SearchBarPreview() {
+//    NotesTheme {
+//        SearchBar()
+//    }
+//}
 
 //@Preview(showBackground = true)
 //@Composable
 //fun MainScreenPreview() {
 //    NotesTheme {
-//        MainScreen(navigator = rememberNavController(), folderViewModel = vm)
+//        MainScreen(navigator = rememberNavController(), folderViewModel = viewModel())
 //    }
 //}
