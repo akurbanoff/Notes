@@ -70,20 +70,12 @@ fun NotesInsideScreen(index: Int = 0, navigator: NavHostController, title: Strin
 fun NoteBody(modifier: Modifier = Modifier, index: Int, parentFolder: String, notesViewModel: NotesViewModel) {
 //    var currentNote: Note = Note(id = 999, title = "", date = "", firstLine = "", textBody = "", parentFolder = )
 
-    var currentNote = Note(
-        title = "",
-        date = "today",
-        firstLine = "",
-        textBody = "",
-        parentFolder = parentFolder
-    )
+    val currentNote = notesViewModel.getNote(index)
 
     val state by notesViewModel.state.collectAsState()
 
-    if(state.notes.size < index){
+    if(currentNote.title.isEmpty() && currentNote.textBody.isEmpty()){
         notesViewModel.createNote(parentFolder = parentFolder)
-    } else {
-        currentNote = notesViewModel.getNote(index)
     }
 
     var title: String by remember {
@@ -97,10 +89,10 @@ fun NoteBody(modifier: Modifier = Modifier, index: Int, parentFolder: String, no
         modifier = modifier
     ) {
         TextField(
-            value = title.ifEmpty { "" },
+            value = title,
             onValueChange = {
                 title = it
-                notesViewModel.noteTitle = title
+                notesViewModel.changeNoteTitle(title)
                 notesViewModel.isNoteChange = true
                             },//notesViewModel.updateNoteTitle(id = index, title = newTitle) },
             modifier = Modifier.fillMaxWidth(),
@@ -115,7 +107,7 @@ fun NoteBody(modifier: Modifier = Modifier, index: Int, parentFolder: String, no
             //modifier = Modifier.verticalScroll(state = )
             onValueChange = {
                 body = it
-                notesViewModel.noteBody = body
+                notesViewModel.changeNoteBody(body)
                 notesViewModel.isNoteChange = true
                             },//notesViewModel.updateNoteBody(id = index, body = newBody) },
             //label = { Text("Введите текст заметки") },
@@ -131,21 +123,15 @@ fun NoteBody(modifier: Modifier = Modifier, index: Int, parentFolder: String, no
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotesInsideTopBar(title: String = "Folders", notesViewModel: NotesViewModel, navigator: NavHostController, index: Int) {
-    val noteTitle = notesViewModel.noteTitle
-    val noteBody = notesViewModel.noteBody
-
-    val state by notesViewModel.state.collectAsState()
-
+fun NotesInsideTopBar(title: String = "Folders", notesViewModel: NotesViewModel, navigator: NavHostController, index: Int){
     TopAppBar(
         title = {
             Text(
                 text = title,
                 color = Orange,
                 modifier = Modifier.clickable {
-                    val currentNote = state.notes.last()
-                    if(currentNote.title.isEmpty() && currentNote.textBody.isEmpty()){
-                        notesViewModel.deleteNote(currentNote.id)
+                    notesViewModel.deleteLastNote()
+                    if(title != "Folders") {
                         navigator.navigate(NavigationRoutes.FolderDetail.withArgs(title))
                     } else {
                         navigator.navigate(NavigationRoutes.MainScreen.route)
@@ -179,8 +165,6 @@ fun NotesInsideTopBar(title: String = "Folders", notesViewModel: NotesViewModel,
                         modifier = Modifier
                             .padding(end = 8.dp, start = 8.dp)
                             .clickable {
-                                notesViewModel.updateNoteTitle(title = noteTitle, id = index)
-                                notesViewModel.updateNoteBody(id = index, body = noteBody)
                                 notesViewModel.isNoteChange = false
                             },
                         style = MaterialTheme.typography.headlineSmall
@@ -191,9 +175,8 @@ fun NotesInsideTopBar(title: String = "Folders", notesViewModel: NotesViewModel,
         navigationIcon = {
             IconButton(
                 onClick = {
-                    val currentNote = state.notes.last()
-                    if (currentNote.title.isEmpty() && currentNote.textBody.isEmpty()) {
-                        notesViewModel.deleteNote(currentNote.id)
+                    notesViewModel.deleteLastNote()
+                    if(title != "Folders") {
                         navigator.navigate(NavigationRoutes.FolderDetail.withArgs(title))
                     } else {
                         navigator.navigate(NavigationRoutes.MainScreen.route)
@@ -205,14 +188,6 @@ fun NotesInsideTopBar(title: String = "Folders", notesViewModel: NotesViewModel,
         }
     )
 }
-
-//@Preview
-//@Composable
-//fun NITBPreview() {
-//    NotesTheme {
-//        NotesInsideTopBar()
-//    }
-//}
 
 @Composable
 fun NoteInsideBottomBar() {

@@ -1,7 +1,7 @@
 package com.example.notes.utils
 
 enum class SortType {
-    NONE,
+    DEFAULT_DATE_EDITED,
     DATE_EDITED,
     DATE_CREATED,
     TITLE,

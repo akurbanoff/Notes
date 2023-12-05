@@ -79,7 +79,6 @@ fun NotesTopBar(
     title: String = "Folders",
     notesViewModel: NotesViewModel
 ) {
-    notesViewModel.parentFolder = title
     val state by notesViewModel.state.collectAsState()
     TopAppBar(
         title = {
@@ -87,9 +86,11 @@ fun NotesTopBar(
                 text = title,
                 color = Orange,
                 modifier = Modifier.clickable {
-                    val currentNote = state.notes.last()
-                    if (currentNote.title.isEmpty() && currentNote.textBody.isEmpty()) {
-                        notesViewModel.deleteNote(currentNote.id)
+                    if(title != "Folders") {
+                        val currentNote = state.notes.last()
+                        if (currentNote.title.isEmpty() && currentNote.textBody.isEmpty()) {
+                            notesViewModel.deleteNote(currentNote.id)
+                        }
                         navigator.navigate(NavigationRoutes.FolderDetail.withArgs(title))
                     } else {
                         navigator.navigate(NavigationRoutes.MainScreen.route)
@@ -113,9 +114,11 @@ fun NotesTopBar(
         navigationIcon = {
             IconButton(
                 onClick = {
-                    val currentNote = state.notes.last()
-                    if (currentNote.title.isEmpty() && currentNote.textBody.isEmpty()) {
-                        notesViewModel.deleteNote(currentNote.id)
+                    if(title != "Folders") {
+                        val currentNote = state.notes.last()
+                        if (currentNote.title.isEmpty() && currentNote.textBody.isEmpty()) {
+                            notesViewModel.deleteNote(currentNote.id)
+                        }
                         navigator.navigate(NavigationRoutes.FolderDetail.withArgs(title))
                     } else {
                         navigator.navigate(NavigationRoutes.MainScreen.route)
@@ -130,7 +133,6 @@ fun NotesTopBar(
 
 @Composable
 fun NotesBottomBar(modifier: Modifier = Modifier, folder: String, navigator: NavHostController, notesViewModel: NotesViewModel) {//title: String?
-    notesViewModel.parentFolder = folder
     val state by notesViewModel.state.collectAsState()
     val countNotes = state.notes.size
     BottomAppBar(
@@ -168,7 +170,6 @@ fun NotesBottomBar(modifier: Modifier = Modifier, folder: String, navigator: Nav
 
 @Composable
 fun NotesList(folder: String, navigator: NavHostController, modifier: Modifier = Modifier, notesViewModel: NotesViewModel) {
-    notesViewModel.parentFolder = folder
     val state by notesViewModel.state.collectAsState()
     Column(
         modifier = modifier

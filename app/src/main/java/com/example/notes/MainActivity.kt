@@ -43,6 +43,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -50,12 +51,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.Popup
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavHostController
@@ -69,6 +74,7 @@ import com.example.notes.db.AppDatabase
 import com.example.notes.db.models.Folder
 import com.example.notes.ui.theme.NotesTheme
 import com.example.notes.ui.theme.Orange
+import com.example.notes.utils.FolderState
 import com.example.notes.utils.NavigationRoutes
 import com.example.notes.view_models.FolderViewModel
 import com.example.notes.view_models.NotesViewModel
@@ -132,6 +138,7 @@ fun InitMainNavigation(folderViewModel: FolderViewModel, notesViewModel: NotesVi
         composable(NavigationRoutes.FolderDetail.route + "/{name}", arguments = listOf(navArgument("name"){type = NavType.StringType})){
             backStackEntry -> backStackEntry.arguments?.let {
                 folderTitle = it.getString("name")!!
+                notesViewModel.changeParentFolder(folderTitle)
                 FolderNotesScreen(title = folderTitle, navigator = navigator, notesViewModel = notesViewModel)
         } }
         composable(NavigationRoutes.NoteDetail.route + "/{index}", arguments = listOf(navArgument("index"){type = NavType.IntType})){
@@ -259,7 +266,11 @@ fun SearchBar(modifier: Modifier = Modifier) {
 fun FolderList(modifier: Modifier = Modifier, navigator: NavHostController, folderViewModel: FolderViewModel) {
     val deletedFolder = Folder(title = "Recently Deleted")
     var showFolderList by remember{ mutableStateOf(true) }
-    val state by folderViewModel.folderState.collectAsState()
+    //val state by folderViewModel.folderState.collectAsState()
+//    val folders by folderViewModel.folders.collectAsState()
+    //folderViewModel.folders.observeAsState()
+
+    val folders by folderViewModel.folders.collectAsState()
 
     Column(
         modifier = modifier
@@ -271,7 +282,7 @@ fun FolderList(modifier: Modifier = Modifier, navigator: NavHostController, fold
             }, showFolderList = showFolderList)
         if(showFolderList) {
             LazyColumn{
-                itemsIndexed(state.folders) { _, item ->
+                itemsIndexed(folders.folders) { _, item ->
                     FolderElement(title = item.title, icon = Icons.Default.FolderOpen, navigator = navigator, folderViewModel = folderViewModel)
                 }
             }
@@ -357,7 +368,10 @@ fun FolderElement(modifier: Modifier = Modifier, title: String, icon: ImageVecto
 @Composable
 fun ActionItem(text: String, icon: ImageVector, iconColor: Color = Color.Black, onClick: () -> Unit) {
     Row(
-        modifier = Modifier.padding(8.dp).background(Color.White).clickable(onClick = onClick)
+        modifier = Modifier
+            .padding(8.dp)
+            .background(Color.White)
+            .clickable(onClick = onClick)
     ) {
         Text(
             text = text,
@@ -426,9 +440,10 @@ fun BottomBar(modifier: Modifier = Modifier, folderViewModel: FolderViewModel, n
 @Composable
 fun CreateFolderDialog(modifier: Modifier = Modifier, folderViewModel: FolderViewModel) {
     var countEmptyFolders = 1
-    val state by folderViewModel.folderState.collectAsState()
+    //val state by folderViewModel.folderState.collectAsState()
+    val folders by folderViewModel.folders.collectAsState()
 
-    for (folder in state.folders) {
+    for (folder in folders.folders) {
         if (folder.title.contains("New Folder")) {
             countEmptyFolders += 1
         }

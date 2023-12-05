@@ -32,4 +32,13 @@ interface NoteDao {
 
     @Query("delete from notes where id = :id")
     fun deleteNoteById(id: Int)
+
+    @Query("delete from notes where title = :title")
+    fun deleteNoteByTitle(title: String)
+
+    @Query("SELECT * FROM notes WHERE parentFolder = :parentFolder ORDER BY date")
+    fun sortNoteByDateCreated(parentFolder: String): Flow<List<Note>>
+
+    @Query("SELECT * FROM notes WHERE parentFolder = :parentFolder ORDER BY title")
+    fun sortNoteByTitle(parentFolder: String): Flow<List<Note>>
 }
