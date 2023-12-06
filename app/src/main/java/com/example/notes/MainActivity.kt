@@ -22,14 +22,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -43,24 +48,19 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.Popup
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavHostController
@@ -72,14 +72,16 @@ import androidx.navigation.navArgument
 import androidx.room.Room
 import com.example.notes.db.AppDatabase
 import com.example.notes.db.models.Folder
+import com.example.notes.db.models.Note
 import com.example.notes.ui.theme.NotesTheme
 import com.example.notes.ui.theme.Orange
-import com.example.notes.utils.FolderState
 import com.example.notes.utils.NavigationRoutes
 import com.example.notes.view_models.FolderViewModel
 import com.example.notes.view_models.NotesViewModel
 
 //import com.google.android.material.color.DynamicColors
+
+val DEBUG_TAG = "Notes"
 
 class MainActivity : ComponentActivity() {
 
@@ -144,9 +146,13 @@ fun InitMainNavigation(folderViewModel: FolderViewModel, notesViewModel: NotesVi
         composable(NavigationRoutes.NoteDetail.route + "/{index}", arguments = listOf(navArgument("index"){type = NavType.IntType})){
             backStackEntry -> backStackEntry.arguments?.let {
                 val index = it.getInt("index")
-                NotesInsideScreen(index = index, navigator = navigator, title = folderTitle, notesViewModel = notesViewModel)
+                val currentNote = notesViewModel.getNote(index)
+                NotesInsideScreen(index = index, navigator = navigator, title = folderTitle, notesViewModel = notesViewModel, currentNote = currentNote)
         } }
-        composable(NavigationRoutes.NewNote.route){ NotesInsideScreen(navigator = navigator, title = folderTitle, newNote = true, notesViewModel = notesViewModel) }
+        composable(NavigationRoutes.NewNote.route){
+            val newNote = notesViewModel.createNote(parentFolder = folderTitle)
+            NotesInsideScreen(index = newNote.id, navigator = navigator, title = folderTitle, notesViewModel = notesViewModel, currentNote = newNote)
+        }
         //composable("show_folder_dialog"){ CreateFolderDialog(folderViewModel = folderViewModel)}
     }
 }
@@ -351,18 +357,51 @@ fun FolderElement(modifier: Modifier = Modifier, title: String, icon: ImageVecto
             }
         }
     }
-    if(showMenu){
-        Popup(
-            onDismissRequest = {showMenu = false}
-        ) {
-            Column {
-                ActionItem(text = "Delete", icon = Icons.Default.Delete, iconColor = Color.Red) {
-                    folderViewModel.deleteFolder(title)
-                    showMenu = false
-                }
-            }
-        }
+    DropdownMenu(
+        expanded = showMenu,
+        modifier = Modifier.clip(MaterialTheme.shapes.small),
+        onDismissRequest = {showMenu = !showMenu}) {
+        DropdownMenuItem(
+            text = { Text(text = "Share Folder") },
+            onClick = { /*TODO*/ },
+            trailingIcon = { Icon(imageVector = Icons.Default.IosShare, contentDescription = null)}
+        )
+        Divider()
+        DropdownMenuItem(
+            text = { Text(text = "Move")},
+            onClick = { /*TODO*/ },
+            trailingIcon = { Icon(imageVector = Icons.Default.FolderOpen, contentDescription = null)}
+        )
+        Divider()
+        DropdownMenuItem(
+            text = { Text(text = "Rename") },
+            onClick = { /*TODO*/ },
+            trailingIcon = { Icon(imageVector = Icons.Default.Create, contentDescription = null)}
+        )
+        Divider()
+        DropdownMenuItem(
+            text = {
+                Text("Delete", color = Color.Red)
+                   },
+            onClick = {
+                folderViewModel.deleteFolder(title)
+                showMenu = false
+                      },
+            trailingIcon = { Icon(imageVector = Icons.Default.Delete, contentDescription = null, tint = Color.Red)}
+        )
     }
+//    if(showMenu){
+//        Popup(
+//            onDismissRequest = {showMenu = false}
+//        ) {
+//            Column {
+//                ActionItem(text = "Delete", icon = Icons.Default.Delete, iconColor = Color.Red) {
+//                    folderViewModel.deleteFolder(title)
+//                    showMenu = false
+//                }
+//            }
+//        }
+//    }
 }
 
 @Composable

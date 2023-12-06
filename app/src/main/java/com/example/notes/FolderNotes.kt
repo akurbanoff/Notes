@@ -15,12 +15,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Pending
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -36,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
@@ -230,18 +238,63 @@ fun Note(title: String, date: String, firstLine: String, index: Int, navigator: 
             }
         }
     }
-    if(showMenu){
-        Popup(
-            onDismissRequest = {showMenu = false}
-        ) {
-            Column {
-                ActionItem(text = "Delete", icon = Icons.Default.Delete, iconColor = Color.Red) {
-                    notesViewModel.deleteNote(index - 1)
-                    showMenu = false
-                }
-            }
-        }
+    DropdownMenu(
+        expanded = showMenu,
+        modifier = Modifier.clip(MaterialTheme.shapes.small),
+        onDismissRequest = {showMenu = !showMenu}) {
     }
+        DropdownMenuItem(
+            text = { Text(text = "Pin Note")},
+            onClick = { /*TODO*/ },
+            trailingIcon = { Icon(imageVector = Icons.Default.PushPin, contentDescription = null)}
+        )
+        Divider()
+        DropdownMenuItem(
+            text = { Text(text = "Lock Note")},
+            onClick = { /*TODO*/ },
+            trailingIcon = { Icon(imageVector = Icons.Default.Lock, contentDescription = null)}
+        )
+        Divider()
+        DropdownMenuItem(
+            text = { Text(text = "Share Note") },
+            onClick = { /*TODO*/ },
+            trailingIcon = { Icon(imageVector = Icons.Default.IosShare, contentDescription = null)}
+        )
+        Divider()
+        DropdownMenuItem(
+            text = { Text(text = "Move")},
+            onClick = { /*TODO*/ },
+            trailingIcon = { Icon(imageVector = Icons.Default.FolderOpen, contentDescription = null)}
+        )
+        Divider()
+        DropdownMenuItem(
+            text = { Text(text = "Rename") },
+            onClick = { /*TODO*/ },
+            trailingIcon = { Icon(imageVector = Icons.Default.Create, contentDescription = null)}
+        )
+        Divider()
+        DropdownMenuItem(
+            text = {
+                Text("Delete", color = Color.Red)
+            },
+            onClick = {
+                notesViewModel.deleteNote(index)
+                showMenu = false
+            },
+            trailingIcon = { Icon(imageVector = Icons.Default.Delete, contentDescription = null, tint = Color.Red)}
+        )
+//    if(showMenu){
+//        Popup(
+//            onDismissRequest = {showMenu = false}
+//        ) {
+//            Column {
+//                ActionItem(text = "Delete", icon = Icons.Default.Delete, iconColor = Color.Red) {
+//                    notesViewModel.deleteNote(index - 1)
+//                    showMenu = false
+//                }
+//            }
+//        }
+//    }
 }
 
 //@Preview(showBackground = true)

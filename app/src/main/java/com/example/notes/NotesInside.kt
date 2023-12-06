@@ -1,6 +1,7 @@
 package com.example.notes
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -45,10 +46,7 @@ import com.example.notes.utils.NavigationRoutes
 import com.example.notes.view_models.NotesViewModel
 
 @Composable
-fun NotesInsideScreen(index: Int = 0, navigator: NavHostController, title: String, newNote: Boolean = false, notesViewModel: NotesViewModel) {
-    if (newNote) {
-        notesViewModel.createNote(parentFolder = title)
-    }
+fun NotesInsideScreen(index: Int, navigator: NavHostController, title: String, notesViewModel: NotesViewModel, currentNote: Note) {
     Column(
         verticalArrangement = Arrangement.SpaceBetween,
         modifier = Modifier
@@ -58,7 +56,7 @@ fun NotesInsideScreen(index: Int = 0, navigator: NavHostController, title: Strin
         Column {
             //NotesTopBar(navigator = navigator, title = title, backToFolderNotes = true, notesViewModel = notesViewModel)
             NotesInsideTopBar(title = title, notesViewModel = notesViewModel, navigator = navigator, index = index)
-            NoteBody(index = index, parentFolder = title, notesViewModel = notesViewModel)
+            NoteBody(index = index, parentFolder = title, notesViewModel = notesViewModel, currentNote = currentNote)
         }
         NoteInsideBottomBar()
     }
@@ -67,22 +65,18 @@ fun NotesInsideScreen(index: Int = 0, navigator: NavHostController, title: Strin
 @SuppressLint("SuspiciousIndentation")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NoteBody(modifier: Modifier = Modifier, index: Int, parentFolder: String, notesViewModel: NotesViewModel) {
+fun NoteBody(modifier: Modifier = Modifier, index: Int, parentFolder: String, notesViewModel: NotesViewModel, currentNote: Note) {
 //    var currentNote: Note = Note(id = 999, title = "", date = "", firstLine = "", textBody = "", parentFolder = )
 
-    val currentNote = notesViewModel.getNote(index)
+    Log.d(DEBUG_TAG, "Title note is ${currentNote.title}")
 
     val state by notesViewModel.state.collectAsState()
 
-    if(currentNote.title.isEmpty() && currentNote.textBody.isEmpty()){
-        notesViewModel.createNote(parentFolder = parentFolder)
-    }
-
     var title: String by remember {
-        mutableStateOf(currentNote.title.ifEmpty { "" })
+        mutableStateOf(currentNote.title)
     }
     var body : String by remember {
-        mutableStateOf(currentNote.textBody.ifEmpty { "" })
+        mutableStateOf(currentNote.textBody)
     }
 
     Column(
@@ -92,7 +86,9 @@ fun NoteBody(modifier: Modifier = Modifier, index: Int, parentFolder: String, no
             value = title,
             onValueChange = {
                 title = it
-                notesViewModel.changeNoteTitle(title)
+                Log.d(DEBUG_TAG, title)
+                notesViewModel.noteTitle = title
+                //notesViewModel.changeNoteTitle(title)
                 notesViewModel.isNoteChange = true
                             },//notesViewModel.updateNoteTitle(id = index, title = newTitle) },
             modifier = Modifier.fillMaxWidth(),
@@ -107,7 +103,9 @@ fun NoteBody(modifier: Modifier = Modifier, index: Int, parentFolder: String, no
             //modifier = Modifier.verticalScroll(state = )
             onValueChange = {
                 body = it
-                notesViewModel.changeNoteBody(body)
+                Log.d(DEBUG_TAG, body)
+                notesViewModel.noteBody = body
+                //notesViewModel.changeNoteBody(body)
                 notesViewModel.isNoteChange = true
                             },//notesViewModel.updateNoteBody(id = index, body = newBody) },
             //label = { Text("Введите текст заметки") },
@@ -130,7 +128,7 @@ fun NotesInsideTopBar(title: String = "Folders", notesViewModel: NotesViewModel,
                 text = title,
                 color = Orange,
                 modifier = Modifier.clickable {
-                    notesViewModel.deleteLastNote()
+                    notesViewModel.deleteLastNote(id = index)
                     if(title != "Folders") {
                         navigator.navigate(NavigationRoutes.FolderDetail.withArgs(title))
                     } else {
@@ -165,6 +163,10 @@ fun NotesInsideTopBar(title: String = "Folders", notesViewModel: NotesViewModel,
                         modifier = Modifier
                             .padding(end = 8.dp, start = 8.dp)
                             .clickable {
+                                Log.d(DEBUG_TAG, notesViewModel.noteTitle)
+                                Log.d(DEBUG_TAG, notesViewModel.noteBody)
+                                notesViewModel.updateNoteTitle(id = index, title = notesViewModel.noteTitle)
+                                notesViewModel.updateNoteBody(id = index, body = notesViewModel.noteBody)
                                 notesViewModel.isNoteChange = false
                             },
                         style = MaterialTheme.typography.headlineSmall
@@ -175,7 +177,7 @@ fun NotesInsideTopBar(title: String = "Folders", notesViewModel: NotesViewModel,
         navigationIcon = {
             IconButton(
                 onClick = {
-                    notesViewModel.deleteLastNote()
+                    notesViewModel.deleteLastNote(id = index)
                     if(title != "Folders") {
                         navigator.navigate(NavigationRoutes.FolderDetail.withArgs(title))
                     } else {

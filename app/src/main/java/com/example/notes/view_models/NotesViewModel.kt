@@ -1,5 +1,6 @@
 package com.example.notes.view_models
 
+import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -7,6 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.notes.DEBUG_TAG
 import com.example.notes.utils.NoteState
 import com.example.notes.utils.SortType
 import com.example.notes.db.dao.NoteDao
@@ -30,12 +32,12 @@ import kotlinx.coroutines.launch
 
 open class NotesViewModel(private val dao: NoteDao): ViewModel() {
 
-//    var noteTitle by mutableStateOf("")
-//    var noteBody by mutableStateOf("")
-    private val _noteBody = MutableStateFlow("")
-    val noteBody = _noteBody.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), "")
-    private val _noteTitle = MutableStateFlow("")
-    val noteTitle = _noteTitle.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), "")
+    var noteTitle by mutableStateOf("")
+    var noteBody by mutableStateOf("")
+//    private val _noteBody = MutableStateFlow("")
+//    val noteBody = _noteBody.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), "")
+//    private val _noteTitle = MutableStateFlow("")
+//    val noteTitle = _noteTitle.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), "")
     var isNoteChange by mutableStateOf(false)
 
     private val _parentFolder = MutableStateFlow("")
@@ -71,12 +73,15 @@ open class NotesViewModel(private val dao: NoteDao): ViewModel() {
 //        }
 //    }
 
-    fun createNote(title: String = "", date: String = "today", firstLine: String = "", textBody: String = "", parentFolder: String){
+    fun createNote(title: String = "", date: String = "today", firstLine: String = "", textBody: String = "", parentFolder: String): Note{
+        val currentNote = Note(title = title, date = date, firstLine = firstLine, textBody = textBody, parentFolder = parentFolder)
         viewModelScope.launch(context = Dispatchers.IO) {
-            changeNoteTitle(title)
-            changeNoteBody(textBody)
-            dao.createNewNote(note = Note(title = title, date = date, firstLine = firstLine, textBody = textBody, parentFolder = parentFolder))
+            //changeNoteTitle(title)
+            //changeNoteBody(textBody)
+            dao.createNewNote(note = currentNote)
+            Log.d(DEBUG_TAG, "note created")
         }
+        return currentNote
     }
 
     fun getNote(id: Int): Note{
@@ -127,12 +132,15 @@ open class NotesViewModel(private val dao: NoteDao): ViewModel() {
         _sortType.value = sortType
     }
 
-    fun deleteLastNote(){
+    fun deleteLastNote(id: Int){
         viewModelScope.launch(Dispatchers.IO) {
             delay(5000L)
             val lastNote = _state.last().notes.last()
             if(lastNote.title.isEmpty() && lastNote.textBody.isEmpty()){
                 deleteNote(lastNote.id)
+            } else {
+                updateNoteTitle(id = id, noteTitle)
+                updateNoteBody(id = id, noteBody)
             }
         }
     }
@@ -141,11 +149,11 @@ open class NotesViewModel(private val dao: NoteDao): ViewModel() {
         _parentFolder.value = newParentFolder
     }
 
-    fun changeNoteTitle(newNoteTitle: String){
-        _noteTitle.value = newNoteTitle
-    }
-
-    fun changeNoteBody(newNoteBody: String){
-        _noteBody.value = newNoteBody
-    }
+//    fun changeNoteTitle(newNoteTitle: String){
+//        _noteTitle.value = newNoteTitle
+//    }
+//
+//    fun changeNoteBody(newNoteBody: String){
+//        _noteBody.value = newNoteBody
+//    }
 }
