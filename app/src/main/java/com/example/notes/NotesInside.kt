@@ -1,7 +1,9 @@
 package com.example.notes
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.util.Log
+import android.view.inputmethod.InputMethodManager
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,6 +14,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Checklist
@@ -24,6 +28,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -37,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -45,20 +51,21 @@ import com.example.notes.ui.theme.Orange
 import com.example.notes.utils.NavigationRoutes
 import com.example.notes.view_models.NotesViewModel
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotesInsideScreen(index: Int, navigator: NavHostController, title: String, notesViewModel: NotesViewModel, currentNote: Note) {
-    Column(
-        verticalArrangement = Arrangement.SpaceBetween,
+fun NotesInsideScreen(index: Int = 999, navigator: NavHostController, parentFolder: String, notesViewModel: NotesViewModel, currentNote: Note) {
+    //нужно изменить на Scaffold
+    Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .padding(8.dp)
+            .padding(8.dp),
+        bottomBar = { NoteInsideBottomBar()}
     ) {
         Column {
-            //NotesTopBar(navigator = navigator, title = title, backToFolderNotes = true, notesViewModel = notesViewModel)
-            NotesInsideTopBar(title = title, notesViewModel = notesViewModel, navigator = navigator, index = index)
-            NoteBody(index = index, parentFolder = title, notesViewModel = notesViewModel, currentNote = currentNote)
+            NotesInsideTopBar(notesViewModel = notesViewModel, navigator = navigator, index = index, parentFolder = parentFolder)
+            NoteBody(index = index, parentFolder = parentFolder, notesViewModel = notesViewModel, currentNote = currentNote)
         }
-        NoteInsideBottomBar()
     }
 }
 
@@ -66,31 +73,18 @@ fun NotesInsideScreen(index: Int, navigator: NavHostController, title: String, n
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteBody(modifier: Modifier = Modifier, index: Int, parentFolder: String, notesViewModel: NotesViewModel, currentNote: Note) {
-//    var currentNote: Note = Note(id = 999, title = "", date = "", firstLine = "", textBody = "", parentFolder = )
 
-    Log.d(DEBUG_TAG, "Title note is ${currentNote.title}")
-
-    val state by notesViewModel.state.collectAsState()
-
-    var title: String by remember {
-        mutableStateOf(currentNote.title)
-    }
-    var body : String by remember {
-        mutableStateOf(currentNote.textBody)
-    }
+    val state by notesViewModel.allNotesState.collectAsState()
 
     Column(
-        modifier = modifier
+        modifier = modifier.verticalScroll(state = rememberScrollState())
     ) {
         TextField(
-            value = title,
-            onValueChange = {
-                title = it
-                Log.d(DEBUG_TAG, title)
-                notesViewModel.noteTitle = title
-                //notesViewModel.changeNoteTitle(title)
+            value = state.title,
+            onValueChange = {title ->
+                notesViewModel.updateNoteTitle(title = title)
                 notesViewModel.isNoteChange = true
-                            },//notesViewModel.updateNoteTitle(id = index, title = newTitle) },
+                            },
             modifier = Modifier.fillMaxWidth(),
             colors = TextFieldDefaults.textFieldColors(
                 containerColor = Color.Transparent,
@@ -99,16 +93,11 @@ fun NoteBody(modifier: Modifier = Modifier, index: Int, parentFolder: String, no
             )
         )
         TextField(
-            value = body,
-            //modifier = Modifier.verticalScroll(state = )
+            value = state.textBody,
             onValueChange = {
-                body = it
-                Log.d(DEBUG_TAG, body)
-                notesViewModel.noteBody = body
-                //notesViewModel.changeNoteBody(body)
+                notesViewModel.updateNoteBody(parentFolder = parentFolder, body = it)
                 notesViewModel.isNoteChange = true
-                            },//notesViewModel.updateNoteBody(id = index, body = newBody) },
-            //label = { Text("Введите текст заметки") },
+                            },
             modifier = Modifier.fillMaxWidth(),
             colors = TextFieldDefaults.textFieldColors(
                 containerColor = Color.Transparent,
@@ -121,16 +110,20 @@ fun NoteBody(modifier: Modifier = Modifier, index: Int, parentFolder: String, no
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotesInsideTopBar(title: String = "Folders", notesViewModel: NotesViewModel, navigator: NavHostController, index: Int){
+fun NotesInsideTopBar(parentFolder: String = "Folders", notesViewModel: NotesViewModel, navigator: NavHostController, index: Int){
+    val context = LocalContext.current
     TopAppBar(
         title = {
             Text(
-                text = title,
+                text = parentFolder,
                 color = Orange,
                 modifier = Modifier.clickable {
-                    notesViewModel.deleteLastNote(id = index)
-                    if(title != "Folders") {
-                        navigator.navigate(NavigationRoutes.FolderDetail.withArgs(title))
+                    if(notesViewModel.isNoteChange) {
+                        notesViewModel.updateNote(parentFolder = parentFolder, id = index)
+                        notesViewModel.isNoteChange = false
+                    }
+                    if(parentFolder != "Folders") {
+                        navigator.navigate(NavigationRoutes.FolderDetail.withArgs(parentFolder))
                     } else {
                         navigator.navigate(NavigationRoutes.MainScreen.route)
                     }
@@ -163,13 +156,16 @@ fun NotesInsideTopBar(title: String = "Folders", notesViewModel: NotesViewModel,
                         modifier = Modifier
                             .padding(end = 8.dp, start = 8.dp)
                             .clickable {
-                                Log.d(DEBUG_TAG, notesViewModel.noteTitle)
-                                Log.d(DEBUG_TAG, notesViewModel.noteBody)
-                                notesViewModel.updateNoteTitle(id = index, title = notesViewModel.noteTitle)
-                                notesViewModel.updateNoteBody(id = index, body = notesViewModel.noteBody)
+                                notesViewModel.updateNote(parentFolder = parentFolder, id = index)
                                 notesViewModel.isNoteChange = false
+                                val inputMethodManager =
+                                    context.getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager
+                                inputMethodManager.hideSoftInputFromWindow(
+                                    (context as Activity).currentFocus?.windowToken,
+                                    0
+                                )
                             },
-                        style = MaterialTheme.typography.headlineSmall
+                        style = MaterialTheme.typography.titleMedium
                     )
                 }
             }
@@ -177,9 +173,12 @@ fun NotesInsideTopBar(title: String = "Folders", notesViewModel: NotesViewModel,
         navigationIcon = {
             IconButton(
                 onClick = {
-                    notesViewModel.deleteLastNote(id = index)
-                    if(title != "Folders") {
-                        navigator.navigate(NavigationRoutes.FolderDetail.withArgs(title))
+                    if(notesViewModel.isNoteChange) {
+                        notesViewModel.updateNote(parentFolder = parentFolder, id = index)
+                        notesViewModel.isNoteChange = false
+                    }
+                    if(parentFolder != "Folders") {
+                        navigator.navigate(NavigationRoutes.FolderDetail.withArgs(parentFolder))
                     } else {
                         navigator.navigate(NavigationRoutes.MainScreen.route)
                     }

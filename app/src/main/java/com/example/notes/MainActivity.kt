@@ -2,6 +2,7 @@ package com.example.notes
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -39,6 +40,7 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -78,6 +80,7 @@ import com.example.notes.ui.theme.Orange
 import com.example.notes.utils.NavigationRoutes
 import com.example.notes.view_models.FolderViewModel
 import com.example.notes.view_models.NotesViewModel
+import kotlinx.coroutines.runBlocking
 
 //import com.google.android.material.color.DynamicColors
 
@@ -133,44 +136,38 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun InitMainNavigation(folderViewModel: FolderViewModel, notesViewModel: NotesViewModel){
     val navigator = rememberNavController()
-    var folderTitle = "Folders"
+    var parentFolder by remember{ mutableStateOf("Folders")}
 
     NavHost(navController = navigator, startDestination = NavigationRoutes.MainScreen.route){
         composable(NavigationRoutes.MainScreen.route){ MainScreen(navigator = navigator, folderViewModel = folderViewModel)}
         composable(NavigationRoutes.FolderDetail.route + "/{name}", arguments = listOf(navArgument("name"){type = NavType.StringType})){
             backStackEntry -> backStackEntry.arguments?.let {
-                folderTitle = it.getString("name")!!
-                notesViewModel.changeParentFolder(folderTitle)
-                FolderNotesScreen(title = folderTitle, navigator = navigator, notesViewModel = notesViewModel)
+                parentFolder = it.getString("name").toString()
+                Log.d(DEBUG_TAG, parentFolder)
+                notesViewModel.changeParentFolder(parentFolder)
+                FolderNotesScreen(parentFolder = parentFolder, navigator = navigator, notesViewModel = notesViewModel)
         } }
         composable(NavigationRoutes.NoteDetail.route + "/{index}", arguments = listOf(navArgument("index"){type = NavType.IntType})){
             backStackEntry -> backStackEntry.arguments?.let {
                 val index = it.getInt("index")
-                val currentNote = notesViewModel.getNote(index)
-                NotesInsideScreen(index = index, navigator = navigator, title = folderTitle, notesViewModel = notesViewModel, currentNote = currentNote)
+                val currentNote: Note = notesViewModel.getNote(id = index, folderTitle = parentFolder)
+                NotesInsideScreen(index = index, navigator = navigator, parentFolder = parentFolder, notesViewModel = notesViewModel, currentNote = currentNote)
         } }
-        composable(NavigationRoutes.NewNote.route){
-            val newNote = notesViewModel.createNote(parentFolder = folderTitle)
-            NotesInsideScreen(index = newNote.id, navigator = navigator, title = folderTitle, notesViewModel = notesViewModel, currentNote = newNote)
-        }
-        //composable("show_folder_dialog"){ CreateFolderDialog(folderViewModel = folderViewModel)}
     }
 }
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(navigator: NavHostController, folderViewModel: FolderViewModel) {
     val sharedFolder = Folder(title = "Shared")
-    //val deletedFolder = FolderAdapter().deletedFolder
-    Column(
-        verticalArrangement = Arrangement.SpaceBetween,
+    Scaffold(
         modifier = Modifier
-            .fillMaxSize()
+            .padding(8.dp),
+        topBar = { TopBar()},
+        bottomBar = { BottomBar(folderViewModel = folderViewModel, navigator = navigator)}
     ) {
-        Column(
-            modifier = Modifier
-                .padding(8.dp)
-        ) {
-            TopBar()
+        Column {
             Text(
                 text = "Folders",
                 style = MaterialTheme.typography.displaySmall,
@@ -185,12 +182,8 @@ fun MainScreen(navigator: NavHostController, folderViewModel: FolderViewModel) {
                 navigator = navigator,
                 folderViewModel = folderViewModel
             )
-            //FolderGroupHeadline(modifier = Modifier.padding(top = 12.dp))
             FolderList(navigator = navigator, folderViewModel = folderViewModel)
-            //FolderElement(title = deletedFolder.title, icon = deletedFolder.icon)
-            //Spacer(modifier = Modifier.weight(1f))
         }
-        BottomBar(folderViewModel = folderViewModel, navigator = navigator)
     }
 }
 
@@ -272,14 +265,11 @@ fun SearchBar(modifier: Modifier = Modifier) {
 fun FolderList(modifier: Modifier = Modifier, navigator: NavHostController, folderViewModel: FolderViewModel) {
     val deletedFolder = Folder(title = "Recently Deleted")
     var showFolderList by remember{ mutableStateOf(true) }
-    //val state by folderViewModel.folderState.collectAsState()
-//    val folders by folderViewModel.folders.collectAsState()
-    //folderViewModel.folders.observeAsState()
 
     val folders by folderViewModel.folders.collectAsState()
 
     Column(
-        modifier = modifier
+        modifier = modifier.padding(top = 4.dp, bottom = 4.dp)
     ) {
         FolderGroupHeadline(modifier = Modifier
             .padding(top = 12.dp)
@@ -320,7 +310,7 @@ fun FolderElement(modifier: Modifier = Modifier, title: String, icon: ImageVecto
                 onClick = { navigator.navigate(NavigationRoutes.FolderDetail.withArgs(title)) },
                 onLongClick = {
                     showMenu = true
-                }//("folder/$title")
+                }
             ),
         colors = CardDefaults.cardColors(
             containerColor = Color.DarkGray,
@@ -405,34 +395,6 @@ fun FolderElement(modifier: Modifier = Modifier, title: String, icon: ImageVecto
 }
 
 @Composable
-fun ActionItem(text: String, icon: ImageVector, iconColor: Color = Color.Black, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .padding(8.dp)
-            .background(Color.White)
-            .clickable(onClick = onClick)
-    ) {
-        Text(
-            text = text,
-            color = Color.Black
-        )
-        Icon(
-            imageVector = icon, contentDescription = null, tint = iconColor
-        )
-    }
-}
-
-//@Preview(showBackground = true)
-//@Composable
-//fun MenuPrev() {
-//    NotesTheme {
-//        ActionItem(text = "Delete", icon = Icons.Default.Delete) {
-//            false
-//        }
-//    }
-//}
-
-@Composable
 fun BottomBar(modifier: Modifier = Modifier, folderViewModel: FolderViewModel, navigator: NavHostController) {
 
     if (folderViewModel.openFolderDialog){
@@ -458,16 +420,6 @@ fun BottomBar(modifier: Modifier = Modifier, folderViewModel: FolderViewModel, n
                     .clickable {
                         //открывается Dialog и создается Folder
                         folderViewModel.openFolderDialog = true
-                    },
-                colorFilter = ColorFilter.tint(Orange)
-            )
-            Image(
-                painter = painterResource(id = R.drawable.edit_square_fill0_wght400_grad0_opsz24),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(36.dp)
-                    .clickable {
-                        navigator.navigate(NavigationRoutes.NewNote.route)
                     },
                 colorFilter = ColorFilter.tint(Orange)
             )

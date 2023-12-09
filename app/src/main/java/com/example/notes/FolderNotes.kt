@@ -1,10 +1,13 @@
 package com.example.notes
 
+import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,7 +26,9 @@ import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Pending
 import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
@@ -33,7 +38,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -53,30 +60,30 @@ import androidx.compose.ui.window.Popup
 import androidx.navigation.NavHostController
 import com.example.notes.ui.theme.Orange
 import com.example.notes.utils.NavigationRoutes
+import com.example.notes.utils.NoteState
 import com.example.notes.view_models.NotesViewModel
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FolderNotesScreen(title: String?, navigator: NavHostController, notesViewModel: NotesViewModel) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.SpaceBetween
+fun FolderNotesScreen(parentFolder: String, navigator: NavHostController, notesViewModel: NotesViewModel) {
+    Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(8.dp),
+        bottomBar = { NotesBottomBar(parentFolder = parentFolder, navigator = navigator, notesViewModel = notesViewModel)}
     ) {
-        Column(
-            modifier = Modifier.padding(8.dp)
-        ) {
+        Column{
             NotesTopBar(navigator = navigator, notesViewModel = notesViewModel)
-            if (title != null) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.displaySmall,
-                    modifier = Modifier.padding(top = 8.dp),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
+            Text(
+                text = parentFolder,
+                style = MaterialTheme.typography.displaySmall,
+                modifier = Modifier.padding(top = 8.dp),
+                color = MaterialTheme.colorScheme.onBackground
+            )
             SearchBar()
-            NotesList(navigator = navigator, modifier = Modifier.padding(top = 10.dp), notesViewModel = notesViewModel, folder = title!!)
+            NotesList(navigator = navigator, modifier = Modifier.padding(top = 10.dp), notesViewModel = notesViewModel, parentFolder = parentFolder)
         }
-        NotesBottomBar(navigator = navigator, notesViewModel = notesViewModel, folder = title!!)
     }
 }
 
@@ -84,22 +91,22 @@ fun FolderNotesScreen(title: String?, navigator: NavHostController, notesViewMod
 @Composable
 fun NotesTopBar(
     navigator: NavHostController,
-    title: String = "Folders",
+    parentFolder: String = "Folders",
     notesViewModel: NotesViewModel
 ) {
-    val state by notesViewModel.state.collectAsState()
+    val state by notesViewModel.allNotesState.collectAsState()
     TopAppBar(
         title = {
             Text(
-                text = title,
+                text = parentFolder,
                 color = Orange,
                 modifier = Modifier.clickable {
-                    if(title != "Folders") {
+                    if(parentFolder != "Folders") {
                         val currentNote = state.notes.last()
                         if (currentNote.title.isEmpty() && currentNote.textBody.isEmpty()) {
                             notesViewModel.deleteNote(currentNote.id)
                         }
-                        navigator.navigate(NavigationRoutes.FolderDetail.withArgs(title))
+                        navigator.navigate(NavigationRoutes.FolderDetail.withArgs(parentFolder))
                     } else {
                         navigator.navigate(NavigationRoutes.MainScreen.route)
                     }
@@ -122,12 +129,12 @@ fun NotesTopBar(
         navigationIcon = {
             IconButton(
                 onClick = {
-                    if(title != "Folders") {
+                    if(parentFolder != "Folders") {
                         val currentNote = state.notes.last()
                         if (currentNote.title.isEmpty() && currentNote.textBody.isEmpty()) {
                             notesViewModel.deleteNote(currentNote.id)
                         }
-                        navigator.navigate(NavigationRoutes.FolderDetail.withArgs(title))
+                        navigator.navigate(NavigationRoutes.FolderDetail.withArgs(parentFolder))
                     } else {
                         navigator.navigate(NavigationRoutes.MainScreen.route)
                     }
@@ -140,9 +147,15 @@ fun NotesTopBar(
 }
 
 @Composable
-fun NotesBottomBar(modifier: Modifier = Modifier, folder: String, navigator: NavHostController, notesViewModel: NotesViewModel) {//title: String?
-    val state by notesViewModel.state.collectAsState()
+fun NotesBottomBar(modifier: Modifier = Modifier, parentFolder: String, navigator: NavHostController, notesViewModel: NotesViewModel) {//title: String?
+    val state by notesViewModel.allNotesState.collectAsState()
     val countNotes = state.notes.size
+
+    if(notesViewModel.openCreateNoteDialog){
+//        notesViewModel.opensDialog()
+        AddNoteDialog(notesViewModel = notesViewModel, parentFolder = parentFolder)
+    }
+
     BottomAppBar(
         modifier = modifier
             .height(46.dp)
@@ -168,23 +181,58 @@ fun NotesBottomBar(modifier: Modifier = Modifier, folder: String, navigator: Nav
                 modifier = Modifier
                     .size(36.dp)
                     .clickable {
-                        navigator.navigate(NavigationRoutes.NewNote.route)
+                        notesViewModel.openCreateNoteDialog = true
+                        //navigator.navigate(NavigationRoutes.NewNote.route)
                     }
             )
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddNoteDialog(notesViewModel : NotesViewModel, parentFolder: String) {
+    val state by notesViewModel.allNotesState.collectAsState()
+    AlertDialog(
+        onDismissRequest = {notesViewModel.openCreateNoteDialog = false},
+        confirmButton = {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.CenterEnd
+                        ){
+                            Button(onClick = {notesViewModel.createNote(parentFolder = parentFolder)}) {
+                                Text(text = "Create Note")
+                            }
+                        }
+        },
+        title = { Text(text = "Add note")},
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TextField(
+                    value = state.title,
+                    onValueChange = {title ->
+                        notesViewModel.updateNoteTitle(title = title)
+                    },
+                    placeholder = { Text(text = "Note title")}
+                )
+            }
+        }
+    )
+}
+
 
 @Composable
-fun NotesList(folder: String, navigator: NavHostController, modifier: Modifier = Modifier, notesViewModel: NotesViewModel) {
-    val state by notesViewModel.state.collectAsState()
+fun NotesList(parentFolder: String, navigator: NavHostController, modifier: Modifier = Modifier, notesViewModel: NotesViewModel) {
+    val state by notesViewModel.allNotesState.collectAsState()
+
     Column(
-        modifier = modifier
+        modifier = modifier.padding(top = 4.dp, bottom = 4.dp)
     ) {
         LazyColumn{
-            itemsIndexed(state.notes){index, item ->
-                Note(title = item.title, date = item.date, firstLine = item.firstLine, index = index, navigator = navigator, notesViewModel = notesViewModel)
+            itemsIndexed(state.notes){_, item ->
+                Note(title = item.title, date = item.date, firstLine = item.firstLine, index = item.id, navigator = navigator, notesViewModel = notesViewModel)
             }
         }
     }
@@ -193,7 +241,7 @@ fun NotesList(folder: String, navigator: NavHostController, modifier: Modifier =
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Note(title: String, date: String, firstLine: String, index: Int, navigator: NavHostController, notesViewModel: NotesViewModel) {
-    var showMenu by remember{
+    var showMenu by remember {
         mutableStateOf(false)
     }
 
@@ -241,36 +289,40 @@ fun Note(title: String, date: String, firstLine: String, index: Int, navigator: 
     DropdownMenu(
         expanded = showMenu,
         modifier = Modifier.clip(MaterialTheme.shapes.small),
-        onDismissRequest = {showMenu = !showMenu}) {
-    }
+        onDismissRequest = { showMenu = !showMenu }) {
         DropdownMenuItem(
-            text = { Text(text = "Pin Note")},
+            text = { Text(text = "Pin Note") },
             onClick = { /*TODO*/ },
-            trailingIcon = { Icon(imageVector = Icons.Default.PushPin, contentDescription = null)}
+            trailingIcon = { Icon(imageVector = Icons.Default.PushPin, contentDescription = null) }
         )
         Divider()
         DropdownMenuItem(
-            text = { Text(text = "Lock Note")},
+            text = { Text(text = "Lock Note") },
             onClick = { /*TODO*/ },
-            trailingIcon = { Icon(imageVector = Icons.Default.Lock, contentDescription = null)}
+            trailingIcon = { Icon(imageVector = Icons.Default.Lock, contentDescription = null) }
         )
         Divider()
         DropdownMenuItem(
             text = { Text(text = "Share Note") },
             onClick = { /*TODO*/ },
-            trailingIcon = { Icon(imageVector = Icons.Default.IosShare, contentDescription = null)}
+            trailingIcon = { Icon(imageVector = Icons.Default.IosShare, contentDescription = null) }
         )
         Divider()
         DropdownMenuItem(
-            text = { Text(text = "Move")},
+            text = { Text(text = "Move") },
             onClick = { /*TODO*/ },
-            trailingIcon = { Icon(imageVector = Icons.Default.FolderOpen, contentDescription = null)}
+            trailingIcon = {
+                Icon(
+                    imageVector = Icons.Default.FolderOpen,
+                    contentDescription = null
+                )
+            }
         )
         Divider()
         DropdownMenuItem(
             text = { Text(text = "Rename") },
             onClick = { /*TODO*/ },
-            trailingIcon = { Icon(imageVector = Icons.Default.Create, contentDescription = null)}
+            trailingIcon = { Icon(imageVector = Icons.Default.Create, contentDescription = null) }
         )
         Divider()
         DropdownMenuItem(
@@ -281,20 +333,15 @@ fun Note(title: String, date: String, firstLine: String, index: Int, navigator: 
                 notesViewModel.deleteNote(index)
                 showMenu = false
             },
-            trailingIcon = { Icon(imageVector = Icons.Default.Delete, contentDescription = null, tint = Color.Red)}
+            trailingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = null,
+                    tint = Color.Red
+                )
+            }
         )
-//    if(showMenu){
-//        Popup(
-//            onDismissRequest = {showMenu = false}
-//        ) {
-//            Column {
-//                ActionItem(text = "Delete", icon = Icons.Default.Delete, iconColor = Color.Red) {
-//                    notesViewModel.deleteNote(index - 1)
-//                    showMenu = false
-//                }
-//            }
-//        }
-//    }
+    }
 }
 
 //@Preview(showBackground = true)

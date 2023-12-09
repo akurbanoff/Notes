@@ -4,6 +4,8 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
+import androidx.room.Upsert
 import com.example.notes.db.models.Note
 import kotlinx.coroutines.flow.Flow
 
@@ -12,11 +14,14 @@ interface NoteDao {
     @Query("Select * from notes where parentFolder = :parentFolder")
     fun getAll(parentFolder: String): Flow<List<Note>>
 
-    @Insert
-    fun createNewNote(note: Note)
+    @Query("INSERT INTO notes(title, date, firstLine, textBody, parentFolder) VALUES (:title, :date, :firstLine, :textBody, :parentFolder)")
+    fun createNewNote(title: String, date: String, parentFolder: String, textBody: String, firstLine: String)
 
-    @Query("select * from notes where id = :noteId")
-    fun getNoteById(noteId: Int): Note
+    @Query("UPDATE notes SET title = :title, firstLine = :firstLine, date = :date, textBody = :textBody WHERE id = :id AND parentFolder = :parentFolder")
+    fun updateNote(id: Int, title: String, firstLine: String, date: String, textBody: String, parentFolder: String)
+
+    @Query("select * from notes where id = :noteId AND parentFolder = :folderTitle")
+    fun getNoteById(noteId: Int, folderTitle: String): Note
 
     @Query("select * from notes where title = :title")
     fun getNoteByTitle(title: String): Note
