@@ -1,7 +1,6 @@
-package com.example.notes.utils
+package com.example.notes.states
 
 import com.example.notes.db.models.Folder
-import com.example.notes.utils.SortType
 
 data class FolderState(
     val folders: List<Folder> = emptyList()

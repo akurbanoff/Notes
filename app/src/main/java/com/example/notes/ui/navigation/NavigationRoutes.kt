@@ -1,10 +1,9 @@
-package com.example.notes.utils
+package com.example.notes.ui.navigation
 
 sealed class NavigationRoutes(val route: String){
     object MainScreen: NavigationRoutes("main_screen")
     object FolderDetail: NavigationRoutes("folder")
     object NoteDetail: NavigationRoutes("note")
-    object NewNote: NavigationRoutes("new_note")
 
     fun withArgs(vararg args: String): String{
         return buildString {

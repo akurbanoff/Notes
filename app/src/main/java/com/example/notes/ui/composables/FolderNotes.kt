@@ -1,7 +1,6 @@
-package com.example.notes
+package com.example.notes.ui.composables
 
 import android.annotation.SuppressLint
-import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -10,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.IosShare
@@ -53,14 +52,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
 import androidx.navigation.NavHostController
+import com.example.notes.R
 import com.example.notes.ui.theme.Orange
-import com.example.notes.utils.NavigationRoutes
-import com.example.notes.utils.NoteState
+import com.example.notes.ui.navigation.NavigationRoutes
+import com.example.notes.utils.sendNoteBroadcast
 import com.example.notes.view_models.NotesViewModel
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -71,7 +71,7 @@ fun FolderNotesScreen(parentFolder: String, navigator: NavHostController, notesV
         modifier = Modifier
             .fillMaxSize()
             .padding(8.dp),
-        bottomBar = { NotesBottomBar(parentFolder = parentFolder, navigator = navigator, notesViewModel = notesViewModel)}
+        bottomBar = { NotesBottomBar(parentFolder = parentFolder, navigator = navigator, notesViewModel = notesViewModel) }
     ) {
         Column{
             NotesTopBar(navigator = navigator, notesViewModel = notesViewModel)
@@ -95,10 +95,20 @@ fun NotesTopBar(
     notesViewModel: NotesViewModel
 ) {
     val state by notesViewModel.allNotesState.collectAsState()
+
+    if (notesViewModel.openDefaultPending){
+        DefaultPending(notesViewModel)
+    } else if (notesViewModel.openAlliCloudPending){
+        AlliCloudPending(notesViewModel)
+    } else if (notesViewModel.openNotesAndSharedPending){
+        NotesAndSharedPending(notesViewModel)
+    }
+
     TopAppBar(
         title = {
             Text(
                 text = parentFolder,
+                style = MaterialTheme.typography.titleLarge,
                 color = Orange,
                 modifier = Modifier.clickable {
                     if(parentFolder != "Folders") {
@@ -118,12 +128,52 @@ fun NotesTopBar(
             Row(
                 horizontalArrangement = Arrangement.End
             ) {
-                Image(
-                    imageVector = Icons.Default.Pending,
-                    contentDescription = null,
-                    colorFilter = ColorFilter.tint(Orange),
-                    modifier = Modifier.size(36.dp)
-                )
+                when(parentFolder){
+                    "Recently Deleted" -> Text(
+                        text = "Edit",
+                        color = Orange,
+                        modifier = Modifier.clickable {  }
+                    )
+                    "Notes" -> Image(
+                        imageVector = Icons.Default.Pending,
+                        contentDescription = null,
+                        colorFilter = ColorFilter.tint(Orange),
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clickable { notesViewModel.openNotesAndSharedPending = true }
+                    )
+                    "Shared" -> Image(
+                        imageVector = Icons.Default.Pending,
+                        contentDescription = null,
+                        colorFilter = ColorFilter.tint(Orange),
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clickable { notesViewModel.openNotesAndSharedPending = true }
+                    )
+                    "All iCloud" -> Image(
+                        imageVector = Icons.Default.Pending,
+                        contentDescription = null,
+                        colorFilter = ColorFilter.tint(Orange),
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clickable { notesViewModel.openAlliCloudPending = true }
+                    )
+                    else -> Row {
+                        Icon(
+                            imageVector = Icons.Default.IosShare, contentDescription = null,
+                            tint = Orange,
+                            modifier = Modifier.size(36.dp)
+                        )
+                        Image(
+                            imageVector = Icons.Default.Pending,
+                            contentDescription = null,
+                            colorFilter = ColorFilter.tint(Orange),
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clickable { notesViewModel.openDefaultPending = true }
+                        )
+                    }
+                }
             }
         },
         navigationIcon = {
@@ -144,6 +194,69 @@ fun NotesTopBar(
             }
         }
     )
+}
+
+@Composable
+fun AlliCloudPending(notesViewModel: NotesViewModel) {
+    DropdownMenu(
+        expanded = notesViewModel.openAlliCloudPending,
+        onDismissRequest = { notesViewModel.openAlliCloudPending = false },
+        modifier = Modifier.clip(MaterialTheme.shapes.small)
+    ) {
+        DropdownMenuItem(text = { Text(text = "View as Gallery") }, onClick = { /*TODO*/ })
+        Divider()
+        DropdownMenuItem(text = { Text(text = "Select Notes") }, onClick = { /*TODO*/ })
+        Divider()
+        DropdownMenuItem(text = { Text(text = "View Attachments") }, onClick = { /*TODO*/ })
+    }
+}
+
+@Composable
+fun NotesAndSharedPending(notesViewModel: NotesViewModel) {
+    DropdownMenu(
+        expanded = notesViewModel.openNotesAndSharedPending,
+        onDismissRequest = { notesViewModel.openNotesAndSharedPending = false },
+        modifier = Modifier.clip(MaterialTheme.shapes.small)
+    ) {
+        DropdownMenuItem(text = { Text(text ="View as Gallery") }, onClick = { /*TODO*/ })
+        Divider()
+        DropdownMenuItem(text = { Text(text = "Select Notes") }, onClick = { /*TODO*/ })
+        Divider()
+        DropdownMenuItem(text = { Text(text = "Sort By") }, onClick = { /*TODO*/ })
+        Divider()
+        DropdownMenuItem(text = { Text(text = "Group By Date") }, onClick = { /*TODO*/ })
+        Divider()
+        DropdownMenuItem(text = { Text(text = "View Attachments") }, onClick = { /*TODO*/ })
+    }
+}
+
+@Composable
+fun DefaultPending(notesViewModel: NotesViewModel) {
+    DropdownMenu(
+        expanded = notesViewModel.openDefaultPending,
+        onDismissRequest = { notesViewModel.openDefaultPending = false },
+        modifier = Modifier.clip(MaterialTheme.shapes.small)
+    ) {
+        DropdownMenuItem(text = { Text(text = "View as Gallery") }, onClick = { /*TODO*/ })
+        Divider()
+        DropdownMenuItem(text = { Text(text = "Share Folder") }, onClick = { /*TODO*/ })
+        Divider()
+        DropdownMenuItem(text = { Text(text = "Add Folder") }, onClick = { /*TODO*/ })
+        Divider()
+        DropdownMenuItem(text = { Text(text = "Move This Folder") }, onClick = { /*TODO*/ })
+        Divider()
+        DropdownMenuItem(text = { Text(text = "Rename") }, onClick = { /*TODO*/ })
+        Divider()
+        DropdownMenuItem(text = { Text(text = "Select Notes") }, onClick = { /*TODO*/ })
+        Divider()
+        DropdownMenuItem(text = { Text(text = "Sort By") }, onClick = { /*TODO*/ })
+        Divider()
+        DropdownMenuItem(text = { Text(text = "Group By Date") }, onClick = { /*TODO*/ })
+        Divider()
+        DropdownMenuItem(text = { Text(text = "View Attachments") }, onClick = { /*TODO*/ })
+        Divider()
+        DropdownMenuItem(text = { Text(text = "Convert to Smart Folder") }, onClick = { /*TODO*/ })
+    }
 }
 
 @Composable
@@ -227,12 +340,19 @@ fun AddNoteDialog(notesViewModel : NotesViewModel, parentFolder: String) {
 fun NotesList(parentFolder: String, navigator: NavHostController, modifier: Modifier = Modifier, notesViewModel: NotesViewModel) {
     val state by notesViewModel.allNotesState.collectAsState()
 
+    val notesList = when(parentFolder){
+        "Recently Deleted" -> state.deletedNotes
+        "All iCloud" -> state.allNotes
+        else -> state.notes
+    }
+
     Column(
         modifier = modifier.padding(top = 4.dp, bottom = 4.dp)
     ) {
         LazyColumn{
-            itemsIndexed(state.notes){_, item ->
+            itemsIndexed(notesList){_, item ->
                 Note(title = item.title, date = item.date, firstLine = item.firstLine, index = item.id, navigator = navigator, notesViewModel = notesViewModel)
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }
@@ -262,7 +382,7 @@ fun Note(title: String, date: String, firstLine: String, index: Int, navigator: 
         ),
     ) {
         Column(
-            modifier = Modifier.padding(start = 24.dp)
+            modifier = Modifier.padding(start = 24.dp, top = 8.dp, bottom = 8.dp)
         ) {
             Text(
                 text = title,
@@ -286,6 +406,9 @@ fun Note(title: String, date: String, firstLine: String, index: Int, navigator: 
             }
         }
     }
+    val context = LocalContext.current
+    val currentNote = notesViewModel.getNote(title)
+
     DropdownMenu(
         expanded = showMenu,
         modifier = Modifier.clip(MaterialTheme.shapes.small),
@@ -305,7 +428,9 @@ fun Note(title: String, date: String, firstLine: String, index: Int, navigator: 
         DropdownMenuItem(
             text = { Text(text = "Share Note") },
             onClick = { /*TODO*/ },
-            trailingIcon = { Icon(imageVector = Icons.Default.IosShare, contentDescription = null) }
+            trailingIcon = { Icon(imageVector = Icons.Default.IosShare, contentDescription = null, modifier = Modifier.clickable {
+                sendNoteBroadcast(context = context, title = currentNote.title, textBody = currentNote.textBody)
+            }) }
         )
         Divider()
         DropdownMenuItem(
@@ -317,12 +442,6 @@ fun Note(title: String, date: String, firstLine: String, index: Int, navigator: 
                     contentDescription = null
                 )
             }
-        )
-        Divider()
-        DropdownMenuItem(
-            text = { Text(text = "Rename") },
-            onClick = { /*TODO*/ },
-            trailingIcon = { Icon(imageVector = Icons.Default.Create, contentDescription = null) }
         )
         Divider()
         DropdownMenuItem(

@@ -1,8 +1,7 @@
-package com.example.notes
+package com.example.notes.ui.composables
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.util.Log
 import android.view.inputmethod.InputMethodManager
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -36,9 +35,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -46,9 +42,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.example.notes.R
 import com.example.notes.db.models.Note
 import com.example.notes.ui.theme.Orange
-import com.example.notes.utils.NavigationRoutes
+import com.example.notes.ui.navigation.NavigationRoutes
+import com.example.notes.utils.sendNoteBroadcast
 import com.example.notes.view_models.NotesViewModel
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -60,7 +58,7 @@ fun NotesInsideScreen(index: Int = 999, navigator: NavHostController, parentFold
         modifier = Modifier
             .fillMaxSize()
             .padding(8.dp),
-        bottomBar = { NoteInsideBottomBar()}
+        bottomBar = { NoteInsideBottomBar() }
     ) {
         Column {
             NotesInsideTopBar(notesViewModel = notesViewModel, navigator = navigator, index = index, parentFolder = parentFolder)
@@ -86,10 +84,12 @@ fun NoteBody(modifier: Modifier = Modifier, index: Int, parentFolder: String, no
                 notesViewModel.isNoteChange = true
                             },
             modifier = Modifier.fillMaxWidth(),
-            colors = TextFieldDefaults.textFieldColors(
-                containerColor = Color.Transparent,
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                disabledContainerColor = Color.Transparent,
                 focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
+                unfocusedIndicatorColor = Color.Transparent,
             )
         )
         TextField(
@@ -99,10 +99,12 @@ fun NoteBody(modifier: Modifier = Modifier, index: Int, parentFolder: String, no
                 notesViewModel.isNoteChange = true
                             },
             modifier = Modifier.fillMaxWidth(),
-            colors = TextFieldDefaults.textFieldColors(
-                containerColor = Color.Transparent,
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                disabledContainerColor = Color.Transparent,
                 focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
+                unfocusedIndicatorColor = Color.Transparent,
             )
         )
     }
@@ -112,10 +114,12 @@ fun NoteBody(modifier: Modifier = Modifier, index: Int, parentFolder: String, no
 @Composable
 fun NotesInsideTopBar(parentFolder: String = "Folders", notesViewModel: NotesViewModel, navigator: NavHostController, index: Int){
     val context = LocalContext.current
+    val currentNote = notesViewModel.getNote(id = index, folderTitle = parentFolder)
     TopAppBar(
         title = {
             Text(
                 text = parentFolder,
+                style = MaterialTheme.typography.titleLarge,
                 color = Orange,
                 modifier = Modifier.clickable {
                     if(notesViewModel.isNoteChange) {
@@ -141,7 +145,10 @@ fun NotesInsideTopBar(parentFolder: String = "Folders", notesViewModel: NotesVie
                     colorFilter = ColorFilter.tint(Orange),
                     modifier = Modifier
                         .padding(end = 8.dp)
-                        .size(36.dp),
+                        .size(36.dp)
+                        .clickable {
+                                   sendNoteBroadcast(context = context, title = currentNote.title, textBody = currentNote.textBody)
+                        },
                 )
                 Image(
                     imageVector = Icons.Default.Pending,
@@ -165,7 +172,7 @@ fun NotesInsideTopBar(parentFolder: String = "Folders", notesViewModel: NotesVie
                                     0
                                 )
                             },
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.titleLarge
                     )
                 }
             }
@@ -214,11 +221,3 @@ fun NoteInsideBottomBar() {
         }
     }
 }
-
-//@Preview(showBackground = true)
-//@Composable
-//fun NotesInsideScreenPreview() {
-//    NotesTheme {
-//        NotesInsideScreen(index = 1, navigator = rememberNavController(), title = "Test")
-//    }
-//}

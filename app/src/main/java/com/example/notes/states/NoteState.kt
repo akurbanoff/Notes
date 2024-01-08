@@ -1,9 +1,12 @@
-package com.example.notes.utils
+package com.example.notes.states
 
 import com.example.notes.db.models.Note
+import com.example.notes.utils.SortType
 
 data class NoteState(
     val notes: List<Note> = emptyList(),
+    val deletedNotes: List<Note> = emptyList(),
+    val allNotes: List<Note> = emptyList(),
     val date: String = "",
     val title: String = "",
     val firstLine: String = "",

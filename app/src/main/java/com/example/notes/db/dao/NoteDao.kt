@@ -11,14 +11,20 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface NoteDao {
-    @Query("Select * from notes where parentFolder = :parentFolder")
-    fun getAll(parentFolder: String): Flow<List<Note>>
+    @Query("Select * from notes where parentFolder = :parentFolder and isDeleted = :isDeleted")
+    fun getAll(parentFolder: String, isDeleted: Boolean = false): Flow<List<Note>>
 
-    @Query("INSERT INTO notes(title, date, firstLine, textBody, parentFolder) VALUES (:title, :date, :firstLine, :textBody, :parentFolder)")
-    fun createNewNote(title: String, date: String, parentFolder: String, textBody: String, firstLine: String)
+    @Query("select * from notes where isDeleted = :isDeleted")
+    fun getAll(isDeleted: Boolean): Flow<List<Note>>
+
+    @Query("INSERT INTO notes(title, date, firstLine, textBody, parentFolder, isDeleted) VALUES (:title, :date, :firstLine, :textBody, :parentFolder, :isDeleted)")
+    fun createNewNote(title: String, date: String, parentFolder: String, textBody: String, firstLine: String, isDeleted: Boolean = false)
 
     @Query("UPDATE notes SET title = :title, firstLine = :firstLine, date = :date, textBody = :textBody WHERE id = :id AND parentFolder = :parentFolder")
     fun updateNote(id: Int, title: String, firstLine: String, date: String, textBody: String, parentFolder: String)
+
+    @Query("update notes set isDeleted = :isDeleted where id = :id")
+    fun changeNoteStatusToDeleted(id: Int, isDeleted: Boolean = true)
 
     @Query("select * from notes where id = :noteId AND parentFolder = :folderTitle")
     fun getNoteById(noteId: Int, folderTitle: String): Note

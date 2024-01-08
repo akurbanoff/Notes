@@ -24,9 +24,6 @@ interface FolderDao {
     @Query("delete from folders where title = :title")
     fun deleteFolderByTitle(title: String)
 
-//    @Query("select countNotes from folders")
-//    fun getCountNotes(): Int
-//
-//    @Query("update folders set countNotes = :newAmount")
-//    fun changeAmountOfNotes(newAmount: Int)
+    @Query("Update folders set title = :newTitle where id = :id")
+    fun renameFolderTitle(id: Int, newTitle: String)
 }

@@ -1,35 +1,24 @@
 package com.example.notes.view_models
 
 import android.util.Log
-import androidx.compose.runtime.State
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.notes.DEBUG_TAG
-import com.example.notes.utils.NoteState
+import com.example.notes.states.NoteState
 import com.example.notes.utils.SortType
 import com.example.notes.db.dao.NoteDao
 import com.example.notes.db.models.Note
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.WhileSubscribed
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -37,46 +26,31 @@ open class NotesViewModel(private val dao: NoteDao): ViewModel() {
 
     var isNoteChange by mutableStateOf(false)
     var openCreateNoteDialog by mutableStateOf(false)
+    var openNotesAndSharedPending by mutableStateOf(false)
+    var openAlliCloudPending by mutableStateOf(false)
+    var openDefaultPending by mutableStateOf(false)
 
     private val _parentFolder = MutableStateFlow("")
     var parentFolder = _parentFolder.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), "")
 
     private val _sortType = MutableStateFlow(SortType.DEFAULT_DATE_EDITED)
-//    @OptIn(ExperimentalCoroutinesApi::class)
-//    private val _notes = _sortType
-//        .flatMapLatest {sortType->
-//            when(sortType){
-//                SortType.DEFAULT_DATE_EDITED -> dao.getAll(parentFolder = parentFolder.value)
-//                SortType.DATE_EDITED -> TODO()
-//                SortType.DATE_CREATED -> dao.sortNoteByDateCreated(parentFolder = parentFolder.value)
-//                SortType.TITLE -> dao.sortNoteByTitle(parentFolder = parentFolder.value)
-//                SortType.NEWEST_FIRST -> dao.getAll(parentFolder = parentFolder.value)
-//                SortType.OLDEST_FIRST -> TODO()
-//            }
-//        }
-//        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
-//
-//    private val _state = MutableStateFlow(NoteState())
-//    val state = combine(_state, _sortType, _notes, _parentFolder) { state, sortType, notes, parentFolder ->
-//        state.copy(
-//            notes = notes,
-//            sortType = sortType,
-//            parentFolder = parentFolder
-//        )
-//    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), NoteState())
 
     private val _allNotes = _parentFolder.flatMapLatest {currentParentFolder ->
         dao.getAll(currentParentFolder)
     }
 
+    private val _deletedNotes = MutableStateFlow(dao.getAll(isDeleted = true)).flatMapLatest { dao.getAll(isDeleted = true) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
+    private val _alliCloudNotes = MutableStateFlow(dao.getAll(isDeleted = false)).flatMapLatest { dao.getAll(isDeleted = false) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
+
     private val _allNotesState = MutableStateFlow(NoteState())
-    val allNotesState = combine(_allNotesState, _parentFolder, _allNotes){state, folder, notes ->
+    val allNotesState = combine(_allNotesState, _parentFolder, _allNotes, _deletedNotes, _alliCloudNotes){state, folder, notes, deletedNotes, allNotes ->
         state.copy(
             notes = notes,
-            parentFolder = folder
+            allNotes = allNotes,
+            parentFolder = folder,
+            deletedNotes = deletedNotes
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), NoteState())
-
 
     fun createNote(parentFolder: String){
         changeParentFolder(parentFolder)
@@ -134,6 +108,15 @@ open class NotesViewModel(private val dao: NoteDao): ViewModel() {
                 textBody = textBody,
                 parentFolder = parentFolder
             )
+            _allNotesState.update {
+                it.copy(
+                    date = "",
+                    title = "",
+                    textBody = "",
+                    firstLine = "",
+                    parentFolder = ""
+                )
+            }
         }
 
         Log.d(DEBUG_TAG, "note updated")
@@ -146,6 +129,7 @@ open class NotesViewModel(private val dao: NoteDao): ViewModel() {
             firstLine = allNotesState.value.firstLine,
             parentFolder = allNotesState.value.parentFolder,
             textBody = allNotesState.value.textBody,
+            isDeleted = false
             )
         viewModelScope.launch(context = Dispatchers.IO) {
             note = dao.getNoteById(noteId = id, folderTitle = folderTitle)
@@ -163,7 +147,7 @@ open class NotesViewModel(private val dao: NoteDao): ViewModel() {
     }
 
     fun getNote(title: String): Note{
-        var note: Note = Note(date = "", title = "", firstLine = "", textBody = "", parentFolder = "")
+        var note: Note = Note(date = "", title = "", firstLine = "", textBody = "", parentFolder = "", isDeleted = false)
         viewModelScope.launch(context = Dispatchers.IO) {
             note = dao.getNoteByTitle(title)
         }
@@ -195,9 +179,15 @@ open class NotesViewModel(private val dao: NoteDao): ViewModel() {
         }
     }
 
+    fun deleteNoteFromDb(id: Int){
+        viewModelScope.launch(Dispatchers.IO) {
+            dao.deleteNoteById(id = id)
+        }
+    }
+
     fun deleteNote(id: Int){
         viewModelScope.launch(context = Dispatchers.IO) {
-            dao.deleteNoteById(id = id)
+            dao.changeNoteStatusToDeleted(id)
         }
     }
 
