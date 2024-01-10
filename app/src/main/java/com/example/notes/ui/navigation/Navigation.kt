@@ -14,8 +14,8 @@ import com.example.notes.db.models.Note
 import com.example.notes.ui.composables.FolderNotesScreen
 import com.example.notes.ui.composables.MainScreen
 import com.example.notes.ui.composables.NotesInsideScreen
-import com.example.notes.view_models.FolderViewModel
-import com.example.notes.view_models.NotesViewModel
+import com.example.notes.ui.view_models.FolderViewModel
+import com.example.notes.ui.view_models.NotesViewModel
 
 @Composable
 fun Navigation(folderViewModel: FolderViewModel, notesViewModel: NotesViewModel){

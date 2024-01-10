@@ -1,7 +1,7 @@
-package com.example.notes.states
+package com.example.notes.ui.states
 
 import com.example.notes.db.models.Note
-import com.example.notes.utils.SortType
+import com.example.notes.domain.SortType
 
 data class NoteState(
     val notes: List<Note> = emptyList(),

@@ -64,6 +64,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavHostController
@@ -74,55 +75,58 @@ import com.example.notes.ui.navigation.Navigation
 import com.example.notes.ui.theme.NotesTheme
 import com.example.notes.ui.theme.Orange
 import com.example.notes.ui.navigation.NavigationRoutes
-import com.example.notes.view_models.FolderViewModel
-import com.example.notes.view_models.NotesViewModel
+import com.example.notes.ui.view_models.FolderViewModel
+import com.example.notes.ui.view_models.NotesViewModel
 import com.skydoves.flexible.bottomsheet.material3.FlexibleBottomSheet
 import com.skydoves.flexible.core.FlexibleSheetSize
 import com.skydoves.flexible.core.FlexibleSheetState
 import com.skydoves.flexible.core.FlexibleSheetValue
 import com.skydoves.flexible.core.rememberFlexibleBottomSheetState
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
 //import com.google.android.material.color.DynamicColors
 
 val DEBUG_TAG = "Notes"
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    private val db by lazy{
-        Room.databaseBuilder(
-        applicationContext,
-        AppDatabase::class.java,
-        "note_db"
-        ).build()
-    }
+//    private val db by lazy{
+//        Room.databaseBuilder(
+//        applicationContext,
+//        AppDatabase::class.java,
+//        "note_db"
+//        ).build()
+//    }
 
-    private val NotesViewModel by viewModels<NotesViewModel>(
-        factoryProducer = {
-            object : ViewModelProvider.Factory{
-                override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    return NotesViewModel(db.noteDao) as T
-                }
-            }
-        }
-    )
+//    private val NotesViewModel by viewModels<NotesViewModel>(
+//        factoryProducer = {
+//            object : ViewModelProvider.Factory{
+//                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+//                    return NotesViewModel(db.noteDao) as T
+//                }
+//            }
+//        }
+//    )
 
-    private val FolderViewModel by viewModels<FolderViewModel>(
-        factoryProducer = {
-            object : ViewModelProvider.Factory{
-                override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    return FolderViewModel(db.folderDao) as T
-                }
-            }
-        }
-    )
-
+//    private val FolderViewModel by viewModels<FolderViewModel>(
+//        factoryProducer = {
+//            object : ViewModelProvider.Factory{
+//                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+//                    return FolderViewModel(db.folderDao) as T
+//                }
+//            }
+//        }
+//    )
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         //this.deleteDatabase("note_db")
         //DynamicColors.applyToActivitiesIfAvailable(application)
         setContent {
             NotesTheme {
+                val FolderViewModel = hiltViewModel<FolderViewModel>()
+                val NotesViewModel = hiltViewModel<NotesViewModel>()
                 // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),

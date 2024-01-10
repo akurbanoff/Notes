@@ -46,8 +46,8 @@ import com.example.notes.R
 import com.example.notes.db.models.Note
 import com.example.notes.ui.theme.Orange
 import com.example.notes.ui.navigation.NavigationRoutes
-import com.example.notes.utils.sendNoteBroadcast
-import com.example.notes.view_models.NotesViewModel
+import com.example.notes.domain.sendNoteBroadcast
+import com.example.notes.ui.view_models.NotesViewModel
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)

@@ -1,4 +1,4 @@
-package com.example.notes.utils
+package com.example.notes.domain
 
 enum class SortType {
     DEFAULT_DATE_EDITED,

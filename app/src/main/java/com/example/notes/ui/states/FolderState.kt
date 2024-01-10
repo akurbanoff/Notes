@@ -1,4 +1,4 @@
-package com.example.notes.states
+package com.example.notes.ui.states
 
 import com.example.notes.db.models.Folder
 

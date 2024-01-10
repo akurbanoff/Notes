@@ -1,13 +1,14 @@
-package com.example.notes.view_models
+package com.example.notes.ui.view_models
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.notes.states.FolderState
+import com.example.notes.ui.states.FolderState
 import com.example.notes.db.models.Folder
 import com.example.notes.db.dao.FolderDao
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,8 +17,12 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class FolderViewModel(private val dao: FolderDao) : ViewModel() {
+@HiltViewModel
+class FolderViewModel @Inject constructor(
+    private val dao: FolderDao
+) : ViewModel() {
     var openFolderDialog by mutableStateOf(false)
     var openRenameDialog by mutableStateOf(false)
 

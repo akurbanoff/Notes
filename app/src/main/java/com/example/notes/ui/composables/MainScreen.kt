@@ -63,8 +63,8 @@ import com.example.notes.R
 import com.example.notes.db.models.Folder
 import com.example.notes.ui.navigation.NavigationRoutes
 import com.example.notes.ui.theme.Orange
-import com.example.notes.view_models.FolderViewModel
-import com.example.notes.view_models.NotesViewModel
+import com.example.notes.ui.view_models.FolderViewModel
+import com.example.notes.ui.view_models.NotesViewModel
 import com.skydoves.flexible.bottomsheet.material3.FlexibleBottomSheet
 import com.skydoves.flexible.core.FlexibleSheetSize
 import com.skydoves.flexible.core.FlexibleSheetState

@@ -1,4 +1,4 @@
-package com.example.notes.utils
+package com.example.notes.domain
 
 import android.content.Context
 import android.content.Intent

@@ -1,4 +1,4 @@
-package com.example.notes.view_models
+package com.example.notes.ui.view_models
 
 import android.util.Log
 import androidx.compose.runtime.getValue
@@ -7,10 +7,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.notes.DEBUG_TAG
-import com.example.notes.states.NoteState
-import com.example.notes.utils.SortType
+import com.example.notes.ui.states.NoteState
+import com.example.notes.domain.SortType
 import com.example.notes.db.dao.NoteDao
 import com.example.notes.db.models.Note
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,8 +22,12 @@ import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-open class NotesViewModel(private val dao: NoteDao): ViewModel() {
+@HiltViewModel
+open class NotesViewModel @Inject constructor(
+    private val dao: NoteDao
+): ViewModel() {
 
     var isNoteChange by mutableStateOf(false)
     var openCreateNoteDialog by mutableStateOf(false)
