@@ -10,6 +10,7 @@ import com.example.notes.DEBUG_TAG
 import com.example.notes.ui.states.NoteState
 import com.example.notes.domain.SortType
 import com.example.notes.db.dao.NoteDao
+import com.example.notes.db.models.Folder
 import com.example.notes.db.models.Note
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -43,6 +44,7 @@ open class NotesViewModel @Inject constructor(
     private val _allNotes = _parentFolder.flatMapLatest {currentParentFolder ->
         dao.getAll(currentParentFolder)
     }
+    private val allNotes = _allNotes.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
 
     private val _deletedNotes = MutableStateFlow(dao.getAll(isDeleted = true)).flatMapLatest { dao.getAll(isDeleted = true) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
     private val _alliCloudNotes = MutableStateFlow(dao.getAll(isDeleted = false)).flatMapLatest { dao.getAll(isDeleted = false) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
@@ -53,7 +55,8 @@ open class NotesViewModel @Inject constructor(
             notes = notes,
             allNotes = allNotes,
             parentFolder = folder,
-            deletedNotes = deletedNotes
+            deletedNotes = deletedNotes,
+            notesAmount = notes.size
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), NoteState())
 
@@ -219,6 +222,19 @@ open class NotesViewModel @Inject constructor(
     fun changeParentFolder(newParentFolder: String){
         _parentFolder.update { newParentFolder }
         //_allNotesState.update { it.copy(parentFolder = newParentFolder) }
+    }
+
+    fun getDeletedNotes(): List<Note> = _deletedNotes.value
+    fun getLastDeletedNote(): Note = _deletedNotes.value.last()
+    fun getAllNotes(): List<Note> = _alliCloudNotes.value
+
+    fun getNotesAmount(title: String): Int{
+        return when(title){
+            "All iCloud" -> getAllNotes().size
+            "Recently Deleted" -> getDeletedNotes().size
+            "Shared" -> 0
+            else -> allNotes.value.size
+        }
     }
 
 //    fun opensDialog(){

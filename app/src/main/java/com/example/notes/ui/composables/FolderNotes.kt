@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
@@ -61,6 +62,7 @@ import com.example.notes.R
 import com.example.notes.ui.theme.Orange
 import com.example.notes.ui.navigation.NavigationRoutes
 import com.example.notes.domain.sendNoteBroadcast
+import com.example.notes.ui.composables.main_screen_modes.SearchBar
 import com.example.notes.ui.view_models.NotesViewModel
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -74,7 +76,7 @@ fun FolderNotesScreen(parentFolder: String, navigator: NavHostController, notesV
         bottomBar = { NotesBottomBar(parentFolder = parentFolder, navigator = navigator, notesViewModel = notesViewModel) }
     ) {
         Column{
-            NotesTopBar(navigator = navigator, notesViewModel = notesViewModel)
+            NotesTopBar(navigator = navigator, notesViewModel = notesViewModel, parentFolder = parentFolder)
             Text(
                 text = parentFolder,
                 style = MaterialTheme.typography.displaySmall,
@@ -164,6 +166,7 @@ fun NotesTopBar(
                             tint = Orange,
                             modifier = Modifier.size(36.dp)
                         )
+                        Spacer(modifier = Modifier.width(16.dp))
                         Image(
                             imageVector = Icons.Default.Pending,
                             contentDescription = null,

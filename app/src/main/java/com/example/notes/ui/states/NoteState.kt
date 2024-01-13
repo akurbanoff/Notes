@@ -12,5 +12,6 @@ data class NoteState(
     val firstLine: String = "",
     val textBody: String = "",
     var parentFolder: String = "",
+    val notesAmount: Int = 0,
     val sortType: SortType = SortType.DEFAULT_DATE_EDITED
 )

@@ -1,6 +1,7 @@
 package com.example.notes
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -71,6 +72,7 @@ import androidx.navigation.NavHostController
 import androidx.room.Room
 import com.example.notes.db.AppDatabase
 import com.example.notes.db.models.Folder
+import com.example.notes.domain.services.NotifyRecentlyDeleted
 import com.example.notes.ui.navigation.Navigation
 import com.example.notes.ui.theme.NotesTheme
 import com.example.notes.ui.theme.Orange
@@ -91,34 +93,6 @@ val DEBUG_TAG = "Notes"
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
-//    private val db by lazy{
-//        Room.databaseBuilder(
-//        applicationContext,
-//        AppDatabase::class.java,
-//        "note_db"
-//        ).build()
-//    }
-
-//    private val NotesViewModel by viewModels<NotesViewModel>(
-//        factoryProducer = {
-//            object : ViewModelProvider.Factory{
-//                override fun <T : ViewModel> create(modelClass: Class<T>): T {
-//                    return NotesViewModel(db.noteDao) as T
-//                }
-//            }
-//        }
-//    )
-
-//    private val FolderViewModel by viewModels<FolderViewModel>(
-//        factoryProducer = {
-//            object : ViewModelProvider.Factory{
-//                override fun <T : ViewModel> create(modelClass: Class<T>): T {
-//                    return FolderViewModel(db.folderDao) as T
-//                }
-//            }
-//        }
-//    )
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         //this.deleteDatabase("note_db")
@@ -127,7 +101,7 @@ class MainActivity : ComponentActivity() {
             NotesTheme {
                 val FolderViewModel = hiltViewModel<FolderViewModel>()
                 val NotesViewModel = hiltViewModel<NotesViewModel>()
-                // A surface container using the 'background' color from the theme
+                //startService(Intent(this, NotifyRecentlyDeleted::class.java))
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

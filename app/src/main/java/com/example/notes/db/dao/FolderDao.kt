@@ -15,6 +15,9 @@ interface FolderDao {
     @Insert
     fun createNewFolder(folder: Folder)
 
+    @Query("update folders set title = :newTitle")
+    fun updateFolder(newTitle: String)
+
     @Query("select * from folders where id = :folderId")
     fun getFolderById(folderId: Int): Folder
 
@@ -23,6 +26,9 @@ interface FolderDao {
 
     @Query("delete from folders where title = :title")
     fun deleteFolderByTitle(title: String)
+
+    @Query("update notes set isDeleted = :isDeleted where parentFolder = :parentFolder")
+    fun deleteNotesFromFolder(parentFolder: String, isDeleted: Boolean = true)
 
     @Query("Update folders set title = :newTitle where id = :id")
     fun renameFolderTitle(id: Int, newTitle: String)
