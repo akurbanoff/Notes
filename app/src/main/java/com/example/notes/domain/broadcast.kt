@@ -2,6 +2,7 @@ package com.example.notes.domain
 
 import android.content.Context
 import android.content.Intent
+import androidx.core.app.ShareCompat.IntentBuilder
 import java.io.File
 
 fun sendNoteBroadcast(context: Context, title: String, textBody: String){
@@ -10,9 +11,10 @@ fun sendNoteBroadcast(context: Context, title: String, textBody: String){
         
         $textBody
     """.trimIndent()
-    val intent = Intent().apply {
-        action = Intent.ACTION_SEND
-        putExtra("body", body)
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, body)
     }
-    context.sendBroadcast(intent)
+
+    context.startActivity(intent)
 }

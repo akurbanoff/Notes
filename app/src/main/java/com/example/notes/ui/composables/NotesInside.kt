@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -32,19 +33,24 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.notes.R
 import com.example.notes.db.models.Note
-import com.example.notes.ui.theme.Orange
 import com.example.notes.ui.navigation.NavigationRoutes
 import com.example.notes.domain.sendNoteBroadcast
 import com.example.notes.ui.view_models.NotesViewModel
@@ -53,7 +59,6 @@ import com.example.notes.ui.view_models.NotesViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesInsideScreen(index: Int = 999, navigator: NavHostController, parentFolder: String, notesViewModel: NotesViewModel, currentNote: Note) {
-    //нужно изменить на Scaffold
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
@@ -77,8 +82,18 @@ fun NoteBody(modifier: Modifier = Modifier, index: Int, parentFolder: String, no
     Column(
         modifier = modifier.verticalScroll(state = rememberScrollState())
     ) {
+        Text(
+            text = currentNote.date,
+            color = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.CenterHorizontally),
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(10.dp))
         TextField(
             value = state.title,
+            textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 26.sp, color = MaterialTheme.colorScheme.onSurface),
             onValueChange = {title ->
                 notesViewModel.updateNoteTitle(title = title)
                 notesViewModel.isNoteChange = true
@@ -98,7 +113,7 @@ fun NoteBody(modifier: Modifier = Modifier, index: Int, parentFolder: String, no
                 notesViewModel.updateNoteBody(parentFolder = parentFolder, body = it)
                 notesViewModel.isNoteChange = true
                             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxSize(),
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,
@@ -120,21 +135,25 @@ fun NotesInsideTopBar(parentFolder: String = "Folders", notesViewModel: NotesVie
             Text(
                 text = parentFolder,
                 style = MaterialTheme.typography.titleLarge,
-                color = Orange,
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.clickable {
                     if(notesViewModel.isNoteChange) {
                         notesViewModel.updateNote(parentFolder = parentFolder, id = index)
                         notesViewModel.isNoteChange = false
                     }
-                    if(parentFolder != "Folders") {
-                        navigator.navigate(NavigationRoutes.FolderDetail.withArgs(parentFolder))
-                    } else {
-                        navigator.navigate(NavigationRoutes.MainScreen.route)
-                    }
+                    navigator.popBackStack()
+//                    if(parentFolder != "Folders") {
+//                        navigator.navigate(NavigationRoutes.FolderDetail.withArgs(parentFolder))
+//                    } else {
+//                        navigator.navigate(NavigationRoutes.MainScreen.route)
+//                    }
                 }
             )
         },
         modifier = Modifier.fillMaxWidth(),
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Color.Transparent
+        ),
         actions = {
             Row(
                 horizontalArrangement = Arrangement.End
@@ -142,39 +161,44 @@ fun NotesInsideTopBar(parentFolder: String = "Folders", notesViewModel: NotesVie
                 Image(
                     imageVector = Icons.Default.IosShare,
                     contentDescription = null,
-                    colorFilter = ColorFilter.tint(Orange),
+                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary),
                     modifier = Modifier
-                        .padding(end = 8.dp)
+                        .padding(end = 16.dp)
                         .size(36.dp)
                         .clickable {
-                                   sendNoteBroadcast(context = context, title = currentNote.title, textBody = currentNote.textBody)
+                            sendNoteBroadcast(
+                                context = context,
+                                title = currentNote.title,
+                                textBody = currentNote.textBody
+                            )
                         },
                 )
                 Image(
                     imageVector = Icons.Default.Pending,
                     contentDescription = null,
-                    colorFilter = ColorFilter.tint(Orange),
+                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary),
                     modifier = Modifier.size(36.dp)
                 )
-                if(notesViewModel.isNoteChange) {
-                    Text(
-                        text = "Done",
-                        color = Orange,
-                        modifier = Modifier
-                            .padding(end = 8.dp, start = 8.dp)
-                            .clickable {
-                                notesViewModel.updateNote(parentFolder = parentFolder, id = index)
-                                notesViewModel.isNoteChange = false
-                                val inputMethodManager =
-                                    context.getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager
-                                inputMethodManager.hideSoftInputFromWindow(
-                                    (context as Activity).currentFocus?.windowToken,
-                                    0
-                                )
-                            },
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                }
+//                if(notesViewModel.isNoteChange) {
+//                    Text(
+//                        text = "Done",
+//                        color = MaterialTheme.colorScheme.primary,
+//                        modifier = Modifier
+//                            .padding(end = 8.dp, start = 8.dp)
+//                            .clickable {
+//                                notesViewModel.updateNote(parentFolder = parentFolder, id = index)
+//                                notesViewModel.isNoteChange = false
+//                                val inputMethodManager =
+//                                    context.getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager
+//                                inputMethodManager.hideSoftInputFromWindow(
+//                                    (context as Activity).currentFocus?.windowToken,
+//                                    0
+//                                )
+//                            },
+//                        style = MaterialTheme.typography.titleLarge,
+//                        fontWeight = FontWeight.Bold
+//                    )
+//                }
             }
         },
         navigationIcon = {
@@ -184,14 +208,15 @@ fun NotesInsideTopBar(parentFolder: String = "Folders", notesViewModel: NotesVie
                         notesViewModel.updateNote(parentFolder = parentFolder, id = index)
                         notesViewModel.isNoteChange = false
                     }
-                    if(parentFolder != "Folders") {
-                        navigator.navigate(NavigationRoutes.FolderDetail.withArgs(parentFolder))
-                    } else {
-                        navigator.navigate(NavigationRoutes.MainScreen.route)
-                    }
+                    navigator.popBackStack()
+//                    if(parentFolder != "Folders") {
+//                        navigator.navigate(NavigationRoutes.FolderDetail.withArgs(parentFolder))
+//                    } else {
+//                        navigator.navigate(NavigationRoutes.MainScreen.route)
+//                    }
                 }
             ) {
-                Icon(imageVector = Icons.Default.KeyboardArrowLeft, contentDescription = null, tint = Orange)
+                Icon(imageVector = Icons.Default.KeyboardArrowLeft, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             }
         }
     )
@@ -209,13 +234,13 @@ fun NoteInsideBottomBar() {
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(imageVector = Icons.Default.Checklist, contentDescription = null, tint = Orange, modifier = Modifier.size(36.dp))
-            Icon(imageVector = Icons.Default.CameraAlt, contentDescription = null, tint = Orange, modifier = Modifier.size(36.dp))
-            Icon(imageVector = Icons.Default.Draw, contentDescription = null, tint = Orange, modifier = Modifier.size(36.dp))
+            Icon(imageVector = Icons.Default.Checklist, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(36.dp))
+            Icon(imageVector = Icons.Default.CameraAlt, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(36.dp))
+            Icon(imageVector = Icons.Default.Draw, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(36.dp))
             Icon(
                 painter = painterResource(id = R.drawable.edit_square_fill0_wght400_grad0_opsz24),
                 contentDescription = null,
-                tint = Orange,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(36.dp)
             )
         }

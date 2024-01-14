@@ -233,7 +233,7 @@ open class NotesViewModel @Inject constructor(
             "All iCloud" -> getAllNotes().size
             "Recently Deleted" -> getDeletedNotes().size
             "Shared" -> 0
-            else -> allNotes.value.size
+            else -> _allNotesState.value.notes.size
         }
     }
 

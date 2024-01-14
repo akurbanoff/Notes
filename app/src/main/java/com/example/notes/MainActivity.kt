@@ -75,7 +75,6 @@ import com.example.notes.db.models.Folder
 import com.example.notes.domain.services.NotifyRecentlyDeleted
 import com.example.notes.ui.navigation.Navigation
 import com.example.notes.ui.theme.NotesTheme
-import com.example.notes.ui.theme.Orange
 import com.example.notes.ui.navigation.NavigationRoutes
 import com.example.notes.ui.view_models.FolderViewModel
 import com.example.notes.ui.view_models.NotesViewModel
@@ -101,12 +100,12 @@ class MainActivity : ComponentActivity() {
             NotesTheme {
                 val FolderViewModel = hiltViewModel<FolderViewModel>()
                 val NotesViewModel = hiltViewModel<NotesViewModel>()
-                //startService(Intent(this, NotifyRecentlyDeleted::class.java))
+
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    Navigation(folderViewModel = FolderViewModel, notesViewModel = NotesViewModel)//folderVM = FolderViewModel)
+                    Navigation(folderViewModel = FolderViewModel, notesViewModel = NotesViewModel)
                 }
             }
         }

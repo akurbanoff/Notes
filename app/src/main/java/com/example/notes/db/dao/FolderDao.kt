@@ -32,4 +32,7 @@ interface FolderDao {
 
     @Query("Update folders set title = :newTitle where id = :id")
     fun renameFolderTitle(id: Int, newTitle: String)
+
+    @Query("Update notes set parentFolder = :newParentFolder where parentFolder = :oldParentFolder")
+    fun renameNotesParentFolder(oldParentFolder: String, newParentFolder: String)
 }

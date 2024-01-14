@@ -28,7 +28,6 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.notes.R
-import com.example.notes.ui.theme.Orange
 import com.example.notes.ui.view_models.FolderViewModel
 
 @Composable
@@ -42,13 +41,13 @@ fun FolderGroupHeadline(modifier: Modifier = Modifier, showFolderList: Boolean) 
         Text(
             text = "iCloud",
             style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Bold
         )
         Image(
             imageVector = if(showFolderList) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowRight,
             contentDescription = null,
-            colorFilter = ColorFilter.tint(Orange)
+            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
         )
     }
 }
@@ -65,19 +64,19 @@ fun TopBar(modifier: Modifier = Modifier, isEditModeStart: Boolean, folderViewMo
             if (isEditModeStart){
                 Text(
                     text = "Done",
-                    color = Orange,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.clickable { folderViewModel.startEditMode = false }
                 )
             } else {
                 Text(
                     text = "Edit",
-                    color = Orange,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.clickable { folderViewModel.startEditMode = true }
                 )
             }
         },
-        colors = TopAppBarDefaults.smallTopAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Color.Transparent
         )
     )
 }
@@ -96,22 +95,22 @@ fun SearchBar(modifier: Modifier = Modifier) {
             Icon(
                 imageVector = Icons.Default.Search,
                 contentDescription = null,
-                tint = Color.LightGray)
+                tint = MaterialTheme.colorScheme.secondary)
         },
         colors = TextFieldDefaults.colors(
-            focusedContainerColor = Color.DarkGray,
-            unfocusedContainerColor = Color.DarkGray,
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
             focusedIndicatorColor = Color.Transparent,
             unfocusedIndicatorColor = Color.Transparent
         ),
         placeholder = {
-            Text(text = "Search", color = Color.LightGray)
+            Text(text = "Search", color = MaterialTheme.colorScheme.secondary)
         },
         trailingIcon = {
             Image(
                 imageVector = ImageVector.vectorResource(id = R.drawable.baseline_mic_24),
                 contentDescription = null,
-                colorFilter = ColorFilter.tint(Color.LightGray)
+                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.secondary)
             )
         }
     )

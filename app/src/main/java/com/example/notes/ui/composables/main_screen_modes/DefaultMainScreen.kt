@@ -3,9 +3,11 @@ package com.example.notes.ui.composables.main_screen_modes
 import android.annotation.SuppressLint
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,6 +26,7 @@ import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.PersonPin
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
@@ -47,6 +50,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -54,11 +58,11 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.notes.db.models.Folder
 import com.example.notes.ui.navigation.NavigationRoutes
-import com.example.notes.ui.theme.Orange
 import com.example.notes.ui.view_models.FolderViewModel
 import com.example.notes.ui.view_models.NotesViewModel
 import com.skydoves.flexible.bottomsheet.material3.FlexibleBottomSheet
@@ -86,7 +90,7 @@ fun DefaultMainScreen(folderViewModel: FolderViewModel, notesViewModel: NotesVie
                 text = "Folders",
                 style = MaterialTheme.typography.displaySmall,
                 modifier = Modifier.padding(top = 8.dp),
-                color = MaterialTheme.colorScheme.onBackground,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold
             )
             if(isSearchBarVisible) {
@@ -155,7 +159,7 @@ fun FolderList(modifier: Modifier = Modifier, navigator: NavHostController, fold
             }
             FolderElement(
                 title = "Recently Deleted",
-                icon = Icons.Default.Delete,
+                icon = Icons.Outlined.Delete,
                 navigator = navigator,
                 folderViewModel = folderViewModel,
                 notesViewModel = notesViewModel,
@@ -195,8 +199,10 @@ fun FolderElement(modifier: Modifier = Modifier, id: Int = 999, title: String, i
                 }
             ),
         colors = CardDefaults.cardColors(
-            containerColor = Color.DarkGray,
-            contentColor = Color.White
+            containerColor = MaterialTheme.colorScheme.tertiary,
+            disabledContainerColor = MaterialTheme.colorScheme.tertiary,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            disabledContentColor = MaterialTheme.colorScheme.onSurface
         ),
         shape = MaterialTheme.shapes.small
     ) {
@@ -206,7 +212,7 @@ fun FolderElement(modifier: Modifier = Modifier, id: Int = 999, title: String, i
             Image(
                 imageVector = icon,
                 contentDescription = null,
-                colorFilter = ColorFilter.tint(Orange)
+                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
             )
             Text(
                 text = title,
@@ -219,12 +225,12 @@ fun FolderElement(modifier: Modifier = Modifier, id: Int = 999, title: String, i
                 Text(
                     text = notesViewModel.getNotesAmount(title).toString(), //количество заметок в этой папке
                     textAlign = TextAlign.End,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.secondary
                 )
                 Image(
                     imageVector = Icons.Default.KeyboardArrowRight,
                     contentDescription = null,
-                    colorFilter = ColorFilter.tint(Color.Gray)
+                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.secondary)
                 )
             }
         }
@@ -233,12 +239,12 @@ fun FolderElement(modifier: Modifier = Modifier, id: Int = 999, title: String, i
         expanded = showMenu && hasMenu,
         modifier = Modifier.clip(MaterialTheme.shapes.small),
         onDismissRequest = {showMenu = !showMenu}) {
-        DropdownMenuItem(
-            text = { Text(text = "Share Folder") },
-            onClick = { /*TODO*/ },
-            trailingIcon = { Icon(imageVector = Icons.Default.IosShare, contentDescription = null) }
-        )
-        Divider()
+//        DropdownMenuItem(
+//            text = { Text(text = "Share Folder") },
+//            onClick = { /*TODO*/ },
+//            trailingIcon = { Icon(imageVector = Icons.Default.IosShare, contentDescription = null) }
+//        )
+//        Divider()
         DropdownMenuItem(
             text = { Text(text = "Move") },
             onClick = { /*TODO*/ },
@@ -268,9 +274,9 @@ fun FolderElement(modifier: Modifier = Modifier, id: Int = 999, title: String, i
 @Composable
 fun RenameDialog(id: Int, currentName: String, folderViewModel: FolderViewModel) {
     var newFolderTitle by remember{ mutableStateOf(currentName) }
-    val isNewFolderTitleEmpty by remember{ mutableStateOf(newFolderTitle.isEmpty()) }
+    //val isNewFolderTitleEmpty by remember{ mutableStateOf(newFolderTitle.isEmpty()) }
     AlertDialog(
-        containerColor = Color.DarkGray,
+        containerColor = MaterialTheme.colorScheme.surface,
         title = {
             Text(
                 text = "Rename Folder",
@@ -312,11 +318,12 @@ fun RenameDialog(id: Int, currentName: String, folderViewModel: FolderViewModel)
                             containerColor = Color.Transparent
                         )
                     ) {
-                        Text(text = "Cancel", color = Orange)
+                        Text(text = "Cancel", color = MaterialTheme.colorScheme.primary)
                     }
-                    if(isNewFolderTitleEmpty){
+                    if(newFolderTitle.isEmpty()){
                         Button(
                             onClick = {},
+                            enabled = false,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.Transparent
                             )
@@ -328,6 +335,7 @@ fun RenameDialog(id: Int, currentName: String, folderViewModel: FolderViewModel)
                             onClick = {
                                 folderViewModel.renameFolder(
                                     id = id,
+                                    oldTitle = currentName,
                                     newTitle = newFolderTitle
                                 )
                             },
@@ -335,7 +343,7 @@ fun RenameDialog(id: Int, currentName: String, folderViewModel: FolderViewModel)
                                 containerColor = Color.Transparent
                             )
                         ) {
-                            Text(text = "Save", color = Orange)
+                            Text(text = "Save", color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
@@ -358,11 +366,13 @@ fun BottomBar(modifier: Modifier = Modifier, folderViewModel: FolderViewModel, n
 
     val scope = rememberCoroutineScope()
 
-    if (folderViewModel.openFolderDialog){
-        scope.launch { sheetState.show(target = FlexibleSheetValue.FullyExpanded) }
-    } else {
-        scope.launch { sheetState.hide() }
+    if (folderViewModel.openFolderDialog) {
+        CreateFolderAlertDialog(folderViewModel = folderViewModel)
     }
+        //scope.launch { sheetState.show(target = FlexibleSheetValue.FullyExpanded) }
+//    } else {
+//        //scope.launch { sheetState.hide() }
+//    }
 
     BottomAppBar(
         modifier = modifier
@@ -384,11 +394,85 @@ fun BottomBar(modifier: Modifier = Modifier, folderViewModel: FolderViewModel, n
                         //открывается Dialog и создается Folder
                         folderViewModel.openFolderDialog = true
                     },
-                colorFilter = ColorFilter.tint(Orange)
+                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
             )
         }
-        CreateFolderDialog(folderViewModel = folderViewModel, sheetState = sheetState)
+        //CreateFolderDialog(folderViewModel = folderViewModel, sheetState = sheetState)
     }
+}
+@Composable
+fun CreateFolderAlertDialog(folderViewModel: FolderViewModel, ) {
+    var countEmptyFolders by remember {mutableStateOf(1)}
+    val folders by folderViewModel.folders.collectAsState()
+
+    for (folder in folders.folders) {
+        if (folder.title.contains("New Folder")) {
+            countEmptyFolders += 1
+        }
+    }
+
+    var folderName by remember {
+        mutableStateOf("New Folder $countEmptyFolders")
+    }
+
+    AlertDialog(
+        onDismissRequest = { folderViewModel.openFolderDialog = false },
+        confirmButton = {},
+        text = {
+            Column(
+                modifier = Modifier.padding(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .height(36.dp)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Cancel",
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable { folderViewModel.openFolderDialog = false }
+                    )
+                    Text(
+                        text = "New Folder",
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Done",
+                        color = if(folderName.isNotEmpty()) MaterialTheme.colorScheme.primary else Color.Gray,
+                        modifier = Modifier.clickable {
+                            if(folderName.isNotEmpty()) {
+                                folderViewModel.createFolder(Folder(title = folderName))
+                                folderViewModel.openFolderDialog = false
+                            }
+                        }
+                    )
+                }
+                TextField(
+                    value = folderName,
+                    modifier = Modifier.fillMaxWidth(),
+                    onValueChange = {
+                        folderName = it
+                        //folderViewModel.updateFolder(newTitle = folderName)
+                    },
+                    trailingIcon = {
+                        if(folderName.isNotEmpty()) {
+                            Image(
+                                imageVector = Icons.Default.Cancel,
+                                contentDescription = null,
+                                modifier = Modifier.clickable { folderName = "" },
+                                colorFilter = ColorFilter.tint(Color.Gray)
+                            )
+                        }
+                    },
+                    shape = MaterialTheme.shapes.small,
+                    colors = TextFieldDefaults.colors(
+
+                    )
+                )
+            }
+        }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -425,19 +509,21 @@ fun CreateFolderDialog(modifier: Modifier = Modifier, folderViewModel: FolderVie
             ) {
                 Text(
                     text = "Cancel",
-                    color = Orange,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.clickable { folderViewModel.openFolderDialog = false }
                 )
                 Text(
                     text = "New Folder",
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "Done",
-                    color = Orange,
+                    color = if(folderName.isNotEmpty()) MaterialTheme.colorScheme.primary else Color.Gray,
                     modifier = Modifier.clickable {
-                        folderViewModel.createFolder(Folder(title = folderName))
-                        folderViewModel.openFolderDialog = false
+                        if(folderName.isNotEmpty()) {
+                            folderViewModel.createFolder(Folder(title = folderName))
+                            folderViewModel.openFolderDialog = false
+                        }
                     }
                 )
             }
@@ -449,11 +535,13 @@ fun CreateFolderDialog(modifier: Modifier = Modifier, folderViewModel: FolderVie
                     folderViewModel.updateFolder(newTitle = folderName)
                 },
                 trailingIcon = {
-                    Image(
-                        imageVector = Icons.Default.Cancel,
-                        contentDescription = null,
-                        modifier = Modifier.clickable { folderName = "" }
-                    )
+                    if(folderName.isNotEmpty()) {
+                        Image(
+                            imageVector = Icons.Default.Cancel,
+                            contentDescription = null,
+                            modifier = Modifier.clickable { folderName = "" }
+                        )
+                    }
                 },
                 shape = MaterialTheme.shapes.small,
                 colors = TextFieldDefaults.colors(

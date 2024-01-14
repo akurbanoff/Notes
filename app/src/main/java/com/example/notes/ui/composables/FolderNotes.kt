@@ -3,6 +3,7 @@ package com.example.notes.ui.composables
 import android.annotation.SuppressLint
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +27,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Pending
 import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.outlined.Pending
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
@@ -42,6 +44,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -51,15 +54,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.notes.R
-import com.example.notes.ui.theme.Orange
 import com.example.notes.ui.navigation.NavigationRoutes
 import com.example.notes.domain.sendNoteBroadcast
 import com.example.notes.ui.composables.main_screen_modes.SearchBar
@@ -76,12 +80,12 @@ fun FolderNotesScreen(parentFolder: String, navigator: NavHostController, notesV
         bottomBar = { NotesBottomBar(parentFolder = parentFolder, navigator = navigator, notesViewModel = notesViewModel) }
     ) {
         Column{
-            NotesTopBar(navigator = navigator, notesViewModel = notesViewModel, parentFolder = parentFolder)
+            NotesTopBar(navigator = navigator, notesViewModel = notesViewModel)
             Text(
                 text = parentFolder,
                 style = MaterialTheme.typography.displaySmall,
-                modifier = Modifier.padding(top = 8.dp),
-                color = MaterialTheme.colorScheme.onBackground
+                modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
+                color = MaterialTheme.colorScheme.onSurface
             )
             SearchBar()
             NotesList(navigator = navigator, modifier = Modifier.padding(top = 10.dp), notesViewModel = notesViewModel, parentFolder = parentFolder)
@@ -111,21 +115,25 @@ fun NotesTopBar(
             Text(
                 text = parentFolder,
                 style = MaterialTheme.typography.titleLarge,
-                color = Orange,
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.clickable {
-                    if(parentFolder != "Folders") {
-                        val currentNote = state.notes.last()
-                        if (currentNote.title.isEmpty() && currentNote.textBody.isEmpty()) {
-                            notesViewModel.deleteNote(currentNote.id)
-                        }
-                        navigator.navigate(NavigationRoutes.FolderDetail.withArgs(parentFolder))
-                    } else {
-                        navigator.navigate(NavigationRoutes.MainScreen.route)
-                    }
+                    navigator.popBackStack()
+//                    if(parentFolder != "Folders") {
+//                        val currentNote = state.notes.last()
+//                        if (currentNote.title.isEmpty() && currentNote.textBody.isEmpty()) {
+//                            notesViewModel.deleteNote(currentNote.id)
+//                        }
+//                        navigator.navigate(NavigationRoutes.FolderDetail.withArgs(parentFolder))
+//                    } else {
+//                        navigator.navigate(NavigationRoutes.MainScreen.route)
+//                    }
                 }
             )
         },
         modifier = Modifier.fillMaxWidth(),
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Color.Transparent
+        ),
         actions = {
             Row(
                 horizontalArrangement = Arrangement.End
@@ -133,44 +141,44 @@ fun NotesTopBar(
                 when(parentFolder){
                     "Recently Deleted" -> Text(
                         text = "Edit",
-                        color = Orange,
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.clickable {  }
                     )
                     "Notes" -> Image(
-                        imageVector = Icons.Default.Pending,
+                        imageVector = Icons.Outlined.Pending,
                         contentDescription = null,
-                        colorFilter = ColorFilter.tint(Orange),
+                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary),
                         modifier = Modifier
                             .size(36.dp)
                             .clickable { notesViewModel.openNotesAndSharedPending = true }
                     )
                     "Shared" -> Image(
-                        imageVector = Icons.Default.Pending,
+                        imageVector = Icons.Outlined.Pending,
                         contentDescription = null,
-                        colorFilter = ColorFilter.tint(Orange),
+                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary),
                         modifier = Modifier
                             .size(36.dp)
                             .clickable { notesViewModel.openNotesAndSharedPending = true }
                     )
                     "All iCloud" -> Image(
-                        imageVector = Icons.Default.Pending,
+                        imageVector = Icons.Outlined.Pending,
                         contentDescription = null,
-                        colorFilter = ColorFilter.tint(Orange),
+                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary),
                         modifier = Modifier
                             .size(36.dp)
                             .clickable { notesViewModel.openAlliCloudPending = true }
                     )
                     else -> Row {
-                        Icon(
-                            imageVector = Icons.Default.IosShare, contentDescription = null,
-                            tint = Orange,
-                            modifier = Modifier.size(36.dp)
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
+//                        Icon(
+//                            imageVector = Icons.Default.IosShare, contentDescription = null,
+//                            tint = Orange,
+//                            modifier = Modifier.size(36.dp)
+//                        )
+//                        Spacer(modifier = Modifier.width(16.dp))
                         Image(
-                            imageVector = Icons.Default.Pending,
+                            imageVector = Icons.Outlined.Pending,
                             contentDescription = null,
-                            colorFilter = ColorFilter.tint(Orange),
+                            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary),
                             modifier = Modifier
                                 .size(36.dp)
                                 .clickable { notesViewModel.openDefaultPending = true }
@@ -182,18 +190,19 @@ fun NotesTopBar(
         navigationIcon = {
             IconButton(
                 onClick = {
-                    if(parentFolder != "Folders") {
-                        val currentNote = state.notes.last()
-                        if (currentNote.title.isEmpty() && currentNote.textBody.isEmpty()) {
-                            notesViewModel.deleteNote(currentNote.id)
-                        }
-                        navigator.navigate(NavigationRoutes.FolderDetail.withArgs(parentFolder))
-                    } else {
-                        navigator.navigate(NavigationRoutes.MainScreen.route)
-                    }
+                    navigator.popBackStack()
+//                    if(parentFolder != "Folders") {
+//                        val currentNote = state.notes.last()
+//                        if (currentNote.title.isEmpty() && currentNote.textBody.isEmpty()) {
+//                            notesViewModel.deleteNote(currentNote.id)
+//                        }
+//                        navigator.navigate(NavigationRoutes.FolderDetail.withArgs(parentFolder))
+//                    } else {
+//                        navigator.navigate(NavigationRoutes.MainScreen.route)
+//                    }
                 }
             ) {
-                Icon(imageVector = Icons.Default.KeyboardArrowLeft, contentDescription = null, tint = Orange)
+                Icon(imageVector = Icons.Default.KeyboardArrowLeft, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             }
         }
     )
@@ -238,7 +247,9 @@ fun DefaultPending(notesViewModel: NotesViewModel) {
     DropdownMenu(
         expanded = notesViewModel.openDefaultPending,
         onDismissRequest = { notesViewModel.openDefaultPending = false },
-        modifier = Modifier.clip(MaterialTheme.shapes.small)
+        modifier = Modifier
+            .clip(MaterialTheme.shapes.small)
+            .background(MaterialTheme.colorScheme.surface)
     ) {
         DropdownMenuItem(text = { Text(text = "View as Gallery") }, onClick = { /*TODO*/ })
         Divider()
@@ -284,16 +295,18 @@ fun NotesBottomBar(modifier: Modifier = Modifier, parentFolder: String, navigato
             modifier = Modifier
                 .fillMaxWidth()
         ) {
-            Text(
-                text = "$countNotes Notes",
-                textAlign = TextAlign.Center,
-                modifier = Modifier.weight(1f),
-                color = Color.White
-            )
+            if(countNotes > 1) {
+                Text(
+                    text = "$countNotes Notes",
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
             Icon(
                 painter = painterResource(id = R.drawable.edit_square_fill0_wght400_grad0_opsz24),
                 contentDescription = null,
-                tint = Orange,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .size(36.dp)
                     .clickable {
@@ -354,7 +367,7 @@ fun NotesList(parentFolder: String, navigator: NavHostController, modifier: Modi
     ) {
         LazyColumn{
             itemsIndexed(notesList){_, item ->
-                Note(title = item.title, date = item.date, firstLine = item.firstLine, index = item.id, navigator = navigator, notesViewModel = notesViewModel)
+                Note(title = item.title, date = item.date, firstLine = item.firstLine, index = item.id, navigator = navigator, notesViewModel = notesViewModel, textBody = item.textBody)
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
@@ -363,11 +376,10 @@ fun NotesList(parentFolder: String, navigator: NavHostController, modifier: Modi
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun Note(title: String, date: String, firstLine: String, index: Int, navigator: NavHostController, notesViewModel: NotesViewModel) {
+fun Note(title: String, date: String, firstLine: String, index: Int, navigator: NavHostController, notesViewModel: NotesViewModel, textBody: String) {
     var showMenu by remember {
         mutableStateOf(false)
     }
-
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -380,8 +392,10 @@ fun Note(title: String, date: String, firstLine: String, index: Int, navigator: 
         ),
         shape = MaterialTheme.shapes.small,
         colors = CardDefaults.cardColors(
-            containerColor = Color.DarkGray,
-            contentColor = Color.White
+            containerColor = MaterialTheme.colorScheme.tertiary,
+            disabledContainerColor = MaterialTheme.colorScheme.tertiary,
+            disabledContentColor = MaterialTheme.colorScheme.onSurface,
+            contentColor = MaterialTheme.colorScheme.onSurface
         ),
     ) {
         Column(
@@ -389,13 +403,14 @@ fun Note(title: String, date: String, firstLine: String, index: Int, navigator: 
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.headlineMedium,
-                color = Color.White
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold
             )
             Row {
                 Text(
                     text = date,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.secondary
                 )
                 Text(
                     text = if (firstLine.length > 30) {
@@ -404,17 +419,18 @@ fun Note(title: String, date: String, firstLine: String, index: Int, navigator: 
                         firstLine
                     },
                     modifier = Modifier.padding(start = 5.dp),
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.secondary
                 )
             }
         }
     }
+
     val context = LocalContext.current
     val currentNote = notesViewModel.getNote(title)
 
     DropdownMenu(
         expanded = showMenu,
-        modifier = Modifier.clip(MaterialTheme.shapes.small),
+        modifier = Modifier.clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.surface),
         onDismissRequest = { showMenu = !showMenu }) {
         DropdownMenuItem(
             text = { Text(text = "Pin Note") },
@@ -430,7 +446,7 @@ fun Note(title: String, date: String, firstLine: String, index: Int, navigator: 
         Divider()
         DropdownMenuItem(
             text = { Text(text = "Share Note") },
-            onClick = { /*TODO*/ },
+            onClick = { sendNoteBroadcast(context = context, title = title, textBody = textBody) },
             trailingIcon = { Icon(imageVector = Icons.Default.IosShare, contentDescription = null, modifier = Modifier.clickable {
                 sendNoteBroadcast(context = context, title = currentNote.title, textBody = currentNote.textBody)
             }) }

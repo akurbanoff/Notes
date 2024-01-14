@@ -75,9 +75,10 @@ class FolderViewModel @Inject constructor(
         }
     }
 
-    fun renameFolder(id: Int, newTitle: String){
+    fun renameFolder(id: Int, oldTitle: String, newTitle: String){
         viewModelScope.launch(Dispatchers.IO) {
             dao.renameFolderTitle(id = id, newTitle = newTitle)
+            dao.renameNotesParentFolder(oldParentFolder = oldTitle, newParentFolder = newTitle)
         }
     }
 

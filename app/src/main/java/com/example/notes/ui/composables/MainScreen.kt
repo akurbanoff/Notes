@@ -71,7 +71,6 @@ import com.example.notes.ui.composables.main_screen_modes.DefaultMainScreen
 import com.example.notes.ui.composables.main_screen_modes.EditMainScreen
 import com.example.notes.ui.composables.main_screen_modes.FolderGroupHeadline
 import com.example.notes.ui.navigation.NavigationRoutes
-import com.example.notes.ui.theme.Orange
 import com.example.notes.ui.view_models.FolderViewModel
 import com.example.notes.ui.view_models.NotesViewModel
 import com.skydoves.flexible.bottomsheet.material3.FlexibleBottomSheet
