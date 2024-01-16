@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.view.inputmethod.InputMethodManager
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,7 +24,10 @@ import androidx.compose.material.icons.filled.Draw
 import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.Pending
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,7 +40,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.currentComposer
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -58,7 +66,26 @@ import com.example.notes.ui.view_models.NotesViewModel
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotesInsideScreen(index: Int = 999, navigator: NavHostController, parentFolder: String, notesViewModel: NotesViewModel, currentNote: Note) {
+fun NotesInsideScreen(index: Int = 999, navigator: NavHostController, parentFolder: String, notesViewModel: NotesViewModel){//, currentNote: Note) {
+    val state by notesViewModel.allNotesState.collectAsState()
+
+    var currentNote: Note = Note(date = "", title = "", firstLine = "", textBody = "", parentFolder = "", isDeleted = false, isShared = false)
+
+    state.allNotes.forEach {note ->
+        if(note.id == index){
+            currentNote = note
+        }
+    }
+
+    if(parentFolder == "Recently Deleted"){
+        state.deletedNotes.forEach {note ->
+            if(note.id == index){
+                currentNote = note
+                notesViewModel.isRecoverNote = true
+            }
+        }
+    }
+
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
@@ -66,8 +93,59 @@ fun NotesInsideScreen(index: Int = 999, navigator: NavHostController, parentFold
         bottomBar = { NoteInsideBottomBar() }
     ) {
         Column {
-            NotesInsideTopBar(notesViewModel = notesViewModel, navigator = navigator, index = index, parentFolder = parentFolder)
+            NotesInsideTopBar(notesViewModel = notesViewModel, navigator = navigator, index = index, parentFolder = parentFolder, currentNote = currentNote)
             NoteBody(index = index, parentFolder = parentFolder, notesViewModel = notesViewModel, currentNote = currentNote)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RecoverDialog(notesViewModel: NotesViewModel, parentFolder: String, title: String) {
+    AlertDialog(onDismissRequest = {
+        notesViewModel.openRecoverDialog = false
+    }) {
+        Column(
+            modifier = Modifier.background(MaterialTheme.colorScheme.background)
+        ) {
+            Text(
+                text = "Recently Deleted Note",
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.CenterHorizontally)
+            )
+            Text(
+                text = "Recently deleted notes can`t be edited.\nTo edit this note, you`ll need to recover it.",
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceAround
+            ) {
+                Button(
+                    onClick = { notesViewModel.openRecoverDialog = false },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent
+                    )
+                ) {
+                    Text(text = "Cancel", color = MaterialTheme.colorScheme.primary)
+                }
+                Button(
+                    onClick = {
+                    notesViewModel.recoverNote(parentFolder = parentFolder, title = title)
+                    notesViewModel.openRecoverDialog = false
+                },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent
+                    )
+                ) {
+                    Text(text = "Recover", color = MaterialTheme.colorScheme.primary)
+                }
+            }
         }
     }
 }
@@ -77,7 +155,9 @@ fun NotesInsideScreen(index: Int = 999, navigator: NavHostController, parentFold
 @Composable
 fun NoteBody(modifier: Modifier = Modifier, index: Int, parentFolder: String, notesViewModel: NotesViewModel, currentNote: Note) {
 
-    val state by notesViewModel.allNotesState.collectAsState()
+    if(notesViewModel.openRecoverDialog){
+        RecoverDialog(notesViewModel = notesViewModel, parentFolder = parentFolder, title = currentNote.title)
+    }
 
     Column(
         modifier = modifier.verticalScroll(state = rememberScrollState())
@@ -92,11 +172,16 @@ fun NoteBody(modifier: Modifier = Modifier, index: Int, parentFolder: String, no
         )
         Spacer(modifier = Modifier.height(10.dp))
         TextField(
-            value = state.title,
+            value = currentNote.title,
             textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 26.sp, color = MaterialTheme.colorScheme.onSurface),
             onValueChange = {title ->
-                notesViewModel.updateNoteTitle(title = title)
-                notesViewModel.isNoteChange = true
+                if(notesViewModel.isRecoverNote){
+                    notesViewModel.openRecoverDialog = true
+                } else {
+                    currentNote.title = title
+                    notesViewModel.updateNoteTitle(title = title)
+                    notesViewModel.isNoteChange = true
+                }
                             },
             modifier = Modifier.fillMaxWidth(),
             colors = TextFieldDefaults.colors(
@@ -108,10 +193,15 @@ fun NoteBody(modifier: Modifier = Modifier, index: Int, parentFolder: String, no
             )
         )
         TextField(
-            value = state.textBody,
+            value = currentNote.textBody,
             onValueChange = {
-                notesViewModel.updateNoteBody(parentFolder = parentFolder, body = it)
-                notesViewModel.isNoteChange = true
+                if(notesViewModel.isRecoverNote){
+                    notesViewModel.openRecoverDialog = true
+                } else {
+                    currentNote.textBody = it
+                    notesViewModel.updateNoteBody(parentFolder = parentFolder, body = it)
+                    notesViewModel.isNoteChange = true
+                }
                             },
             modifier = Modifier.fillMaxSize(),
             colors = TextFieldDefaults.colors(
@@ -127,9 +217,9 @@ fun NoteBody(modifier: Modifier = Modifier, index: Int, parentFolder: String, no
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotesInsideTopBar(parentFolder: String = "Folders", notesViewModel: NotesViewModel, navigator: NavHostController, index: Int){
+fun NotesInsideTopBar(parentFolder: String = "Folders", notesViewModel: NotesViewModel, navigator: NavHostController, index: Int, currentNote: Note){
     val context = LocalContext.current
-    val currentNote = notesViewModel.getNote(id = index, folderTitle = parentFolder)
+
     TopAppBar(
         title = {
             Text(

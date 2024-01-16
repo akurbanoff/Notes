@@ -9,9 +9,11 @@ data class Note (
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val date: String,
-    val title: String,
+    var title: String,
     val firstLine: String,
-    val textBody: String,
+    var textBody: String,
     val parentFolder: String,
     val isDeleted: Boolean,
+    @ColumnInfo(defaultValue = "0")
+    val isShared: Boolean
 )

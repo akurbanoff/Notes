@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.IosShare
@@ -31,6 +32,7 @@ import androidx.compose.material.icons.outlined.Pending
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
@@ -43,6 +45,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -108,6 +111,10 @@ fun NotesTopBar(
         AlliCloudPending(notesViewModel)
     } else if (notesViewModel.openNotesAndSharedPending){
         NotesAndSharedPending(notesViewModel)
+    }
+
+    val isDeletedFolder by remember {
+        mutableStateOf(parentFolder == "Recently Deleted")
     }
 
     TopAppBar(
@@ -275,8 +282,12 @@ fun DefaultPending(notesViewModel: NotesViewModel) {
 
 @Composable
 fun NotesBottomBar(modifier: Modifier = Modifier, parentFolder: String, navigator: NavHostController, notesViewModel: NotesViewModel) {//title: String?
+    val isDeletedFolder by remember {
+        mutableStateOf(parentFolder == "Recently Deleted")
+    }
+
     val state by notesViewModel.allNotesState.collectAsState()
-    val countNotes = state.notes.size
+    val countNotes = if(!isDeletedFolder) state.notes.size else state.deletedNotes.size
 
     if(notesViewModel.openCreateNoteDialog){
 //        notesViewModel.opensDialog()
@@ -295,7 +306,7 @@ fun NotesBottomBar(modifier: Modifier = Modifier, parentFolder: String, navigato
             modifier = Modifier
                 .fillMaxWidth()
         ) {
-            if(countNotes > 1) {
+            if(countNotes > 0) {
                 Text(
                     text = "$countNotes Notes",
                     textAlign = TextAlign.Center,
@@ -322,6 +333,7 @@ fun NotesBottomBar(modifier: Modifier = Modifier, parentFolder: String, navigato
 @Composable
 fun AddNoteDialog(notesViewModel : NotesViewModel, parentFolder: String) {
     val state by notesViewModel.allNotesState.collectAsState()
+    var newNoteTitle by remember {mutableStateOf("")}
     AlertDialog(
         onDismissRequest = {notesViewModel.openCreateNoteDialog = false},
         confirmButton = {
@@ -329,7 +341,18 @@ fun AddNoteDialog(notesViewModel : NotesViewModel, parentFolder: String) {
                             modifier = Modifier.fillMaxWidth(),
                             contentAlignment = Alignment.CenterEnd
                         ){
-                            Button(onClick = {notesViewModel.createNote(parentFolder = parentFolder)}) {
+                            Button(onClick = {
+                                if(newNoteTitle.isNotEmpty()) {
+                                    notesViewModel.createNote(
+                                        parentFolder = parentFolder,
+                                        title = newNoteTitle
+                                    )
+                                }
+                            },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if(newNoteTitle.isNotEmpty()) MaterialTheme.colorScheme.primary else Color.Gray
+                                )
+                                ) {
                                 Text(text = "Create Note")
                             }
                         }
@@ -340,11 +363,24 @@ fun AddNoteDialog(notesViewModel : NotesViewModel, parentFolder: String) {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 TextField(
-                    value = state.title,
-                    onValueChange = {title ->
-                        notesViewModel.updateNoteTitle(title = title)
+                    value = newNoteTitle,
+                    onValueChange = {
+                                    newNoteTitle = it
                     },
-                    placeholder = { Text(text = "Note title")}
+                    placeholder = { Text(text = "Note title")},
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent
+                    ),
+                    trailingIcon = {
+                        Image(
+                            imageVector = Icons.Default.Cancel,
+                            contentDescription = null,
+                            modifier = Modifier.clickable { newNoteTitle = "" }
+                        )
+                    },
                 )
             }
         }
@@ -430,7 +466,9 @@ fun Note(title: String, date: String, firstLine: String, index: Int, navigator: 
 
     DropdownMenu(
         expanded = showMenu,
-        modifier = Modifier.clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.surface),
+        modifier = Modifier
+            .clip(MaterialTheme.shapes.small)
+            .background(MaterialTheme.colorScheme.surface),
         onDismissRequest = { showMenu = !showMenu }) {
         DropdownMenuItem(
             text = { Text(text = "Pin Note") },

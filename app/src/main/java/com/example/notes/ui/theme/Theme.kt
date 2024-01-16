@@ -22,7 +22,7 @@ private val DarkColorScheme = darkColorScheme(
     surface = Color.DarkGray,
     onSurface = Color.White,
     background = Color.Black,
-    tertiary = Color.Gray
+    tertiary = Color.DarkGray
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -31,7 +31,7 @@ private val LightColorScheme = lightColorScheme(
     surface = Color.White,
     onSurface = Color.Black,
     background = GhostWhite,
-    tertiary = Color.Gray
+    tertiary = AliceBlue
 
     /* Other default colors to override
     onPrimary = Color.White,

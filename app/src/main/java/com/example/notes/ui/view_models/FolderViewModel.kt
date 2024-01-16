@@ -25,6 +25,16 @@ import kotlin.properties.Delegates
 class FolderViewModel @Inject constructor(
     private val dao: FolderDao
 ) : ViewModel() {
+//    val defaultFolders = listOf(
+//        Folder(title = "Shared"),
+//        Folder(title = "All iCloud"),
+//        Folder(title = "Notes"),
+//        Folder(title = "Recently Deleted"),
+//    )
+//    init {
+//
+//    }
+
     var openFolderDialog by mutableStateOf(false)
     var openRenameDialog by mutableStateOf(false)
     var startEditMode by mutableStateOf(false)

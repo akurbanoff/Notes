@@ -56,7 +56,8 @@ fun EditMainScreen(folderViewModel: FolderViewModel, notesViewModel: NotesViewMo
                 navigator = navigator,
                 folderViewModel = folderViewModel,
                 notesViewModel = notesViewModel,
-                hasMenu = false
+                hasMenu = false,
+                //notesAmount = notesViewModel.getNotesAmount(sharedFolder.title)
             )
         }
     }

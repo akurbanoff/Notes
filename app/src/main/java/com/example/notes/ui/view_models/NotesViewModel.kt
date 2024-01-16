@@ -2,8 +2,10 @@ package com.example.notes.ui.view_models
 
 import android.util.Log
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.notes.DEBUG_TAG
@@ -12,18 +14,29 @@ import com.example.notes.domain.SortType
 import com.example.notes.db.dao.NoteDao
 import com.example.notes.db.models.Folder
 import com.example.notes.db.models.Note
+import com.example.notes.ui.states.NotesMetaInfState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.last
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 @HiltViewModel
 open class NotesViewModel @Inject constructor(
@@ -35,35 +48,55 @@ open class NotesViewModel @Inject constructor(
     var openNotesAndSharedPending by mutableStateOf(false)
     var openAlliCloudPending by mutableStateOf(false)
     var openDefaultPending by mutableStateOf(false)
+    var isRecoverNote by mutableStateOf(false)
+    var openRecoverDialog by mutableStateOf(false)
 
     private val _parentFolder = MutableStateFlow("")
     var parentFolder = _parentFolder.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), "")
 
-    private val _sortType = MutableStateFlow(SortType.DEFAULT_DATE_EDITED)
+    val notes: StateFlow<Int> = _parentFolder.flatMapLatest { parentFolder ->
+        dao.getNotesAmount(parentFolder)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), 0)
 
-    private val _allNotes = _parentFolder.flatMapLatest {currentParentFolder ->
-        dao.getAll(currentParentFolder)
-    }
+    private val _sortType = MutableStateFlow(SortType.DEFAULT_DATE_EDITED)
+    private val _metaState = MutableStateFlow(NotesMetaInfState())
+
+    private val _notesMetaInf = combine(_metaState, _parentFolder, _sortType){state, folder, sort ->
+        state.copy(
+            parentFolder = folder,
+            sortType = sort
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), NotesMetaInfState())
+
+    private val _allNotes = _notesMetaInf.flatMapLatest {state ->
+        dao.getAll(state.parentFolder)//, state.sortType)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
     private val allNotes = _allNotes.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
 
     private val _deletedNotes = MutableStateFlow(dao.getAll(isDeleted = true)).flatMapLatest { dao.getAll(isDeleted = true) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
+    private val _sharedNotes = MutableStateFlow(dao.getAllShared(isShared = true)).flatMapLatest { dao.getAllShared(isShared = true) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
     private val _alliCloudNotes = MutableStateFlow(dao.getAll(isDeleted = false)).flatMapLatest { dao.getAll(isDeleted = false) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
+    val allInNotes = MutableStateFlow(dao.getAll(isDeleted = false, parentFolder = "Notes")).flatMapLatest { dao.getAll(isDeleted = false, parentFolder = "Notes") }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
 
     private val _allNotesState = MutableStateFlow(NoteState())
-    val allNotesState = combine(_allNotesState, _parentFolder, _allNotes, _deletedNotes, _alliCloudNotes){state, folder, notes, deletedNotes, allNotes ->
-        state.copy(
+    val allNotesState = combine(
+        _deletedNotes, _sharedNotes, _alliCloudNotes, _allNotes, _parentFolder
+    ){deletedNotes, sharedNotes, allNotes, notes, folder ->
+        NoteState(
             notes = notes,
             allNotes = allNotes,
             parentFolder = folder,
             deletedNotes = deletedNotes,
+            sharedNotes = sharedNotes,
             notesAmount = notes.size
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), NoteState())
 
-    fun createNote(parentFolder: String){
+    var notesAmount by mutableStateOf(_allNotes.value.size)
+
+    fun createNote(parentFolder: String, title: String){
         changeParentFolder(parentFolder)
 
-        val title = allNotesState.value.title
         val date = allNotesState.value.date
         val firstLine = if(allNotesState.value.textBody.length > 30) allNotesState.value.textBody.take(30) else allNotesState.value.textBody
         val textBody = allNotesState.value.textBody
@@ -130,32 +163,43 @@ open class NotesViewModel @Inject constructor(
         Log.d(DEBUG_TAG, "note updated")
     }
 
-    fun getNote(id: Int, folderTitle: String): Note{
-        var note: Note = Note(
-            date = allNotesState.value.date,
-            title = allNotesState.value.title,
-            firstLine = allNotesState.value.firstLine,
-            parentFolder = allNotesState.value.parentFolder,
-            textBody = allNotesState.value.textBody,
-            isDeleted = false
-            )
-        viewModelScope.launch(context = Dispatchers.IO) {
-            note = dao.getNoteById(noteId = id, folderTitle = folderTitle)
-            _allNotesState.update {
-                it.copy(
-                    date = note.date,
-                    title = note.title,
-                    firstLine = note.firstLine,
-                    textBody = note.textBody,
-                    parentFolder = note.parentFolder
-                )
+    fun recoverNote(parentFolder: String, title: String){
+        var note = Note(date = "", title = "", firstLine = "", textBody = "", parentFolder = "", isDeleted = false, isShared = false)
+        _deletedNotes.value.forEach {
+            if(it.title == title){
+                note = it
             }
         }
-        return note
+        dao.changeNoteStatusToDeleted(note.id)
     }
 
+//    fun getNote(id: Int, folderTitle: String): Note{
+//        var note: Note = Note(
+//            date = allNotesState.value.date,
+//            title = allNotesState.value.title,
+//            firstLine = allNotesState.value.firstLine,
+//            parentFolder = allNotesState.value.parentFolder,
+//            textBody = allNotesState.value.textBody,
+//            isDeleted = false,
+//            isShared = false
+//            )
+//        viewModelScope.launch(context = Dispatchers.IO) {
+//            note = dao.getNoteById(noteId = id, folderTitle = folderTitle)
+//            _allNotesState.update {
+//                it.copy(
+//                    date = note.date,
+//                    title = note.title,
+//                    firstLine = note.firstLine,
+//                    textBody = note.textBody,
+//                    parentFolder = note.parentFolder
+//                )
+//            }
+//        }
+//        return note
+//    }
+
     fun getNote(title: String): Note{
-        var note: Note = Note(date = "", title = "", firstLine = "", textBody = "", parentFolder = "", isDeleted = false)
+        var note: Note = Note(date = "", title = "", firstLine = "", textBody = "", parentFolder = "", isDeleted = false, isShared = false)
         viewModelScope.launch(context = Dispatchers.IO) {
             note = dao.getNoteByTitle(title)
         }
@@ -229,13 +273,16 @@ open class NotesViewModel @Inject constructor(
     fun getAllNotes(): List<Note> = _alliCloudNotes.value
 
     fun getNotesAmount(title: String): Int{
+        changeParentFolder(title)
         return when(title){
-            "All iCloud" -> getAllNotes().size
-            "Recently Deleted" -> getDeletedNotes().size
-            "Shared" -> 0
-            else -> _allNotesState.value.notes.size
+            "All iCloud" -> _alliCloudNotes.value.size
+            "Recently Deleted" -> _deletedNotes.value.size
+            "Shared" -> _sharedNotes.value.size
+            "Notes" -> allInNotes.value.size
+            else -> _allNotes.value.size
         }
     }
+
 
 //    fun opensDialog(){
 //        _allNotesState.update { it.copy(isAddingNote = true) }

@@ -1,6 +1,7 @@
 package com.example.notes.ui.composables.main_screen_modes
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -31,6 +32,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
@@ -46,6 +48,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -53,6 +56,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -70,7 +74,12 @@ import com.skydoves.flexible.core.FlexibleSheetSize
 import com.skydoves.flexible.core.FlexibleSheetState
 import com.skydoves.flexible.core.FlexibleSheetValue
 import com.skydoves.flexible.core.rememberFlexibleBottomSheetState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -85,7 +94,7 @@ fun DefaultMainScreen(folderViewModel: FolderViewModel, notesViewModel: NotesVie
         Column(
             //modifier = Modifier.verticalScroll(state = scrollState)
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = "Folders",
                 style = MaterialTheme.typography.displaySmall,
@@ -99,11 +108,15 @@ fun DefaultMainScreen(folderViewModel: FolderViewModel, notesViewModel: NotesVie
             FolderElement(
                 title = sharedFolder.title,
                 icon = Icons.Default.PersonPin,
-                modifier = Modifier.padding(top = 20.dp),
+                modifier = Modifier
+                    .padding(top = 20.dp)
+                    .shadow(elevation = 6.dp, shape = MaterialTheme.shapes.medium)
+                    .clip(MaterialTheme.shapes.medium),
                 navigator = navigator,
                 folderViewModel = folderViewModel,
                 notesViewModel = notesViewModel,
-                hasMenu = false
+                hasMenu = false,
+                //notesAmount = notesViewModel.getNotesAmount(sharedFolder.title)
             )
             FolderList(navigator = navigator, folderViewModel = folderViewModel, notesViewModel = notesViewModel)
         }
@@ -126,25 +139,37 @@ fun FolderList(modifier: Modifier = Modifier, navigator: NavHostController, fold
                 showFolderList = !showFolderList
             }, showFolderList = showFolderList)
         if(showFolderList) {
-            if(folders.folders.isNotEmpty()){
-                FolderElement(
-                    title = "All iCloud",
-                    icon = Icons.Default.FolderOpen,
-                    navigator = navigator,
-                    folderViewModel = folderViewModel,
-                    notesViewModel = notesViewModel,
-                    hasMenu = false
-                )
-            }
-            FolderElement(
-                title = "Notes",
-                icon = Icons.Default.FolderOpen,
-                navigator = navigator,
-                folderViewModel = folderViewModel,
-                notesViewModel = notesViewModel,
-                hasMenu = false
-            )
-            LazyColumn{
+            LazyColumn(
+                modifier = Modifier
+                    .shadow(elevation = 6.dp, shape = MaterialTheme.shapes.medium)
+                    .clip(MaterialTheme.shapes.medium)
+            ) {
+                if (folders.folders.isNotEmpty()) {
+                    //notesViewModel.changeParentFolder("All iCloud")
+                    item {
+                        FolderElement(
+                            title = "All iCloud",
+                            icon = Icons.Default.FolderOpen,
+                            navigator = navigator,
+                            folderViewModel = folderViewModel,
+                            notesViewModel = notesViewModel,
+                            hasMenu = false,
+                            //notesAmount = notesViewModel.getNotesAmount("All iCloud")
+                        )
+                    }
+                }
+                item {
+                    FolderElement(
+                        title = "Notes",
+                        icon = Icons.Default.FolderOpen,
+                        navigator = navigator,
+                        folderViewModel = folderViewModel,
+                        notesViewModel = notesViewModel,
+                        hasMenu = false,
+                        //notesAmount = notesViewModel.getNotesAmount("Notes")
+                    )
+                }
+
                 itemsIndexed(folders.folders) { _, item ->
                     FolderElement(
                         id = item.id,
@@ -153,43 +178,58 @@ fun FolderList(modifier: Modifier = Modifier, navigator: NavHostController, fold
                         navigator = navigator,
                         folderViewModel = folderViewModel,
                         notesViewModel = notesViewModel,
-                        hasMenu = true
+                        hasMenu = true,
+                        notesAmount = notesViewModel.notesAmount
+                        //notesAmount = notesViewModel.getNotesAmount(item.title)
+                    )
+                }
+                item{
+                    FolderElement(
+                        title = "Recently Deleted",
+                        icon = Icons.Outlined.Delete,
+                        navigator = navigator,
+                        folderViewModel = folderViewModel,
+                        notesViewModel = notesViewModel,
+                        hasMenu = false,
+                        //notesAmount = notesViewModel.getNotesAmount("Recently Deleted")
                     )
                 }
             }
-            FolderElement(
-                title = "Recently Deleted",
-                icon = Icons.Outlined.Delete,
-                navigator = navigator,
-                folderViewModel = folderViewModel,
-                notesViewModel = notesViewModel,
-                hasMenu = false
-            )
         }
     }
 }
 
+@SuppressLint("CoroutineCreationDuringComposition")
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FolderElement(modifier: Modifier = Modifier, id: Int = 999, title: String, icon: ImageVector,
                   navigator: NavHostController, folderViewModel: FolderViewModel,
-                  hasMenu: Boolean, notesViewModel: NotesViewModel
+                  hasMenu: Boolean, notesViewModel: NotesViewModel, notesAmount: Int = 0
 ){
     var showMenu by remember {
         mutableStateOf(false)
     }
 
-    //notesViewModel.changeParentFolder(newParentFolder = title)
     val notesState by notesViewModel.allNotesState.collectAsState()
 
-    if(folderViewModel.openRenameDialog){
-        RenameDialog(currentName = title, id = id, folderViewModel = folderViewModel)
+    val notesAmount: Int = when(title){
+        "Shared" -> notesState.sharedNotes.size
+        "All iCloud" -> notesState.allNotes.size
+        "Notes" -> {
+            val state by notesViewModel.allInNotes.collectAsState()
+            state.size
+        }
+        "Recently Deleted" -> notesState.deletedNotes.size
+        else -> notesAmount
     }
 
-    ElevatedCard(
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 6.dp
-        ),
+    //notesViewModel.changeParentFolder(newParentFolder = title)
+
+//    if(folderViewModel.openRenameDialog){
+//        RenameDialog(currentName = title, id = id, folderViewModel = folderViewModel)
+//    }
+
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .combinedClickable(
@@ -197,14 +237,8 @@ fun FolderElement(modifier: Modifier = Modifier, id: Int = 999, title: String, i
                 onLongClick = {
                     showMenu = true
                 }
-            ),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiary,
-            disabledContainerColor = MaterialTheme.colorScheme.tertiary,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-            disabledContentColor = MaterialTheme.colorScheme.onSurface
-        ),
-        shape = MaterialTheme.shapes.small
+            )
+            .background(MaterialTheme.colorScheme.tertiary)
     ) {
         Row(
             modifier = Modifier.padding(8.dp)
@@ -216,14 +250,15 @@ fun FolderElement(modifier: Modifier = Modifier, id: Int = 999, title: String, i
             )
             Text(
                 text = title,
-                modifier = Modifier.padding(start = 8.dp)
+                modifier = Modifier.padding(start = 8.dp),
+                color = MaterialTheme.colorScheme.onSurface
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
                 Text(
-                    text = notesViewModel.getNotesAmount(title).toString(), //количество заметок в этой папке
+                    text = notesAmount.toString(), //количество заметок в этой папке
                     textAlign = TextAlign.End,
                     color = MaterialTheme.colorScheme.secondary
                 )
@@ -237,7 +272,9 @@ fun FolderElement(modifier: Modifier = Modifier, id: Int = 999, title: String, i
     }
     DropdownMenu(
         expanded = showMenu && hasMenu,
-        modifier = Modifier.clip(MaterialTheme.shapes.small),
+        modifier = Modifier
+            .clip(MaterialTheme.shapes.small)
+            .background(MaterialTheme.colorScheme.surface),
         onDismissRequest = {showMenu = !showMenu}) {
 //        DropdownMenuItem(
 //            text = { Text(text = "Share Folder") },
@@ -257,6 +294,9 @@ fun FolderElement(modifier: Modifier = Modifier, id: Int = 999, title: String, i
             trailingIcon = { Icon(imageVector = Icons.Default.Create, contentDescription = null) }
         )
         Divider()
+        if(folderViewModel.openRenameDialog){
+            RenameDialog(currentName = title, id = id, folderViewModel = folderViewModel)
+        }
         DropdownMenuItem(
             text = {
                 Text("Delete", color = Color.Red)
@@ -273,10 +313,19 @@ fun FolderElement(modifier: Modifier = Modifier, id: Int = 999, title: String, i
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RenameDialog(id: Int, currentName: String, folderViewModel: FolderViewModel) {
-    var newFolderTitle by remember{ mutableStateOf(currentName) }
+    val state by folderViewModel.folders.collectAsState()
+    var currentFolder = Folder(title = "")
+
+    state.folders.forEach {
+        if(it.id == id){
+            currentFolder = it
+        }
+    }
+
+    var newFolderTitle by remember{ mutableStateOf(currentFolder.title) }
     //val isNewFolderTitleEmpty by remember{ mutableStateOf(newFolderTitle.isEmpty()) }
     AlertDialog(
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.background,
         title = {
             Text(
                 text = "Rename Folder",
@@ -294,8 +343,8 @@ fun RenameDialog(id: Int, currentName: String, folderViewModel: FolderViewModel)
                     onValueChange = { newFolderTitle = it },
                     shape = MaterialTheme.shapes.medium,
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Black,
-                        unfocusedContainerColor = Color.Black,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                         unfocusedIndicatorColor = Color.Transparent,
                         focusedIndicatorColor = Color.Transparent
                     ),
@@ -338,6 +387,7 @@ fun RenameDialog(id: Int, currentName: String, folderViewModel: FolderViewModel)
                                     oldTitle = currentName,
                                     newTitle = newFolderTitle
                                 )
+                                folderViewModel.openRenameDialog = false
                             },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.Transparent
@@ -401,7 +451,7 @@ fun BottomBar(modifier: Modifier = Modifier, folderViewModel: FolderViewModel, n
     }
 }
 @Composable
-fun CreateFolderAlertDialog(folderViewModel: FolderViewModel, ) {
+fun CreateFolderAlertDialog(folderViewModel: FolderViewModel) {
     var countEmptyFolders by remember {mutableStateOf(1)}
     val folders by folderViewModel.folders.collectAsState()
 
@@ -417,6 +467,7 @@ fun CreateFolderAlertDialog(folderViewModel: FolderViewModel, ) {
 
     AlertDialog(
         onDismissRequest = { folderViewModel.openFolderDialog = false },
+        containerColor = MaterialTheme.colorScheme.background,
         confirmButton = {},
         text = {
             Column(
@@ -467,7 +518,12 @@ fun CreateFolderAlertDialog(folderViewModel: FolderViewModel, ) {
                     },
                     shape = MaterialTheme.shapes.small,
                     colors = TextFieldDefaults.colors(
-
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent
                     )
                 )
             }

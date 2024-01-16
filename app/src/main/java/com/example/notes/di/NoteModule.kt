@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.example.notes.db.AppDatabase
 import com.example.notes.db.dao.FolderDao
 import com.example.notes.db.dao.NoteDao
+import com.example.notes.db.migrations.MIGRATION_5_6
 import com.example.notes.domain.services.NotifyRecentlyDeleted
 import com.example.notes.ui.view_models.FolderViewModel
 import com.example.notes.ui.view_models.NotesViewModel
@@ -24,7 +25,9 @@ object NoteModule {
             applicationContext,
             AppDatabase::class.java,
             "note_db"
-        ).build()
+        )
+            //.addMigrations(MIGRATION_5_6)
+            .build()
     }
 
     @Provides

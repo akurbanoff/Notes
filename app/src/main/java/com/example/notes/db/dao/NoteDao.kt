@@ -17,14 +17,20 @@ interface NoteDao {
     @Query("select * from notes where isDeleted = :isDeleted")
     fun getAll(isDeleted: Boolean): Flow<List<Note>>
 
-    @Query("INSERT INTO notes(title, date, firstLine, textBody, parentFolder, isDeleted) VALUES (:title, :date, :firstLine, :textBody, :parentFolder, :isDeleted)")
-    fun createNewNote(title: String, date: String, parentFolder: String, textBody: String, firstLine: String, isDeleted: Boolean = false)
+    @Query("select * from notes where isShared = :isShared")
+    fun getAllShared(isShared: Boolean): Flow<List<Note>>
+
+    @Query("INSERT INTO notes(title, date, firstLine, textBody, parentFolder, isDeleted, isShared) VALUES (:title, :date, :firstLine, :textBody, :parentFolder, :isDeleted, :isShared)")
+    fun createNewNote(title: String, date: String, parentFolder: String, textBody: String, firstLine: String, isDeleted: Boolean = false, isShared: Boolean = false)
 
     @Query("UPDATE notes SET title = :title, firstLine = :firstLine, date = :date, textBody = :textBody WHERE id = :id AND parentFolder = :parentFolder")
     fun updateNote(id: Int, title: String, firstLine: String, date: String, textBody: String, parentFolder: String)
 
     @Query("update notes set isDeleted = :isDeleted where id = :id")
     fun changeNoteStatusToDeleted(id: Int, isDeleted: Boolean = true)
+
+    @Query("Select count(id) from notes where parentFolder = :title")
+    fun getNotesAmount(title: String): Flow<Int>
 
     @Query("select * from notes where id = :noteId AND parentFolder = :folderTitle")
     fun getNoteById(noteId: Int, folderTitle: String): Note

@@ -37,8 +37,8 @@ fun Navigation(folderViewModel: FolderViewModel, notesViewModel: NotesViewModel)
         composable(NavigationRoutes.NoteDetail.route + "/{index}", arguments = listOf(navArgument("index"){type = NavType.IntType})){
                 backStackEntry -> backStackEntry.arguments?.let {
             val index = it.getInt("index")
-            val currentNote: Note = notesViewModel.getNote(id = index, folderTitle = parentFolder)
-            NotesInsideScreen(index = index, navigator = navigator, parentFolder = parentFolder, notesViewModel = notesViewModel, currentNote = currentNote)
+            //val currentNote: Note = notesViewModel.getNote(id = index, folderTitle = parentFolder)
+            NotesInsideScreen(index = index, navigator = navigator, parentFolder = parentFolder, notesViewModel = notesViewModel)//, currentNote = currentNote)
         } }
     }
 }
