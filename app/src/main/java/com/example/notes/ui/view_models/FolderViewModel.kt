@@ -1,5 +1,6 @@
 package com.example.notes.ui.view_models
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -25,19 +26,10 @@ import kotlin.properties.Delegates
 class FolderViewModel @Inject constructor(
     private val dao: FolderDao
 ) : ViewModel() {
-//    val defaultFolders = listOf(
-//        Folder(title = "Shared"),
-//        Folder(title = "All iCloud"),
-//        Folder(title = "Notes"),
-//        Folder(title = "Recently Deleted"),
-//    )
-//    init {
-//
-//    }
-
     var openFolderDialog by mutableStateOf(false)
     var openRenameDialog by mutableStateOf(false)
     var startEditMode by mutableStateOf(false)
+    var showMenu by mutableStateOf(false)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val _folders = MutableStateFlow(dao.getAll())
@@ -78,7 +70,7 @@ class FolderViewModel @Inject constructor(
         viewModelScope.launch(
             context = Dispatchers.IO
         ){
-            dao.deleteFolderByTitle(title = title)
+            dao.deleteFolder(title = title)
             try {
                 dao.deleteNotesFromFolder(parentFolder = title)
             } catch (_: Exception){}
@@ -92,5 +84,16 @@ class FolderViewModel @Inject constructor(
         }
     }
 
+    fun changeIndex(fromIndex: Int, toIndex: Int){
+        var fromFolder = _folders.value[fromIndex]
+        var toFolder = _folders.value[toIndex]
+
+        viewModelScope.launch(Dispatchers.IO) {
+            dao.deleteFolder(fromFolder.id)
+            dao.deleteFolder(toFolder.id)
+            dao.createNewFolder(Folder(id = toFolder.id, fromFolder.title))
+            dao.createNewFolder(Folder(id = fromFolder.id, toFolder.title))
+        }
+    }
 
 }

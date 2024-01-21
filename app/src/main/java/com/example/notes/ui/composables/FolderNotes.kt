@@ -1,6 +1,7 @@
 package com.example.notes.ui.composables
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -83,7 +84,7 @@ fun FolderNotesScreen(parentFolder: String, navigator: NavHostController, notesV
         bottomBar = { NotesBottomBar(parentFolder = parentFolder, navigator = navigator, notesViewModel = notesViewModel) }
     ) {
         Column{
-            NotesTopBar(navigator = navigator, notesViewModel = notesViewModel)
+            NotesTopBar(navigator = navigator, notesViewModel = notesViewModel, parentFolder = parentFolder)
             Text(
                 text = parentFolder,
                 style = MaterialTheme.typography.displaySmall,
@@ -100,41 +101,28 @@ fun FolderNotesScreen(parentFolder: String, navigator: NavHostController, notesV
 @Composable
 fun NotesTopBar(
     navigator: NavHostController,
-    parentFolder: String = "Folders",
+    parentFolder: String,
     notesViewModel: NotesViewModel
 ) {
     val state by notesViewModel.allNotesState.collectAsState()
 
-    if (notesViewModel.openDefaultPending){
-        DefaultPending(notesViewModel)
-    } else if (notesViewModel.openAlliCloudPending){
-        AlliCloudPending(notesViewModel)
-    } else if (notesViewModel.openNotesAndSharedPending){
-        NotesAndSharedPending(notesViewModel)
-    }
+    var openNotesAndSharedPending by remember {mutableStateOf(false)}
+    var openAlliCloudPending by remember {mutableStateOf(false)}
+    var openDefaultPending by remember {mutableStateOf(false)}
 
     val isDeletedFolder by remember {
         mutableStateOf(parentFolder == "Recently Deleted")
     }
 
+    Log.d("parent", parentFolder)
+
     TopAppBar(
         title = {
             Text(
-                text = parentFolder,
+                text = "Folders",
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable {
-                    navigator.popBackStack()
-//                    if(parentFolder != "Folders") {
-//                        val currentNote = state.notes.last()
-//                        if (currentNote.title.isEmpty() && currentNote.textBody.isEmpty()) {
-//                            notesViewModel.deleteNote(currentNote.id)
-//                        }
-//                        navigator.navigate(NavigationRoutes.FolderDetail.withArgs(parentFolder))
-//                    } else {
-//                        navigator.navigate(NavigationRoutes.MainScreen.route)
-//                    }
-                }
+                modifier = Modifier.clickable { navigator.popBackStack() }
             )
         },
         modifier = Modifier.fillMaxWidth(),
@@ -142,152 +130,207 @@ fun NotesTopBar(
             containerColor = Color.Transparent
         ),
         actions = {
-            Row(
-                horizontalArrangement = Arrangement.End
-            ) {
-                when(parentFolder){
-                    "Recently Deleted" -> Text(
-                        text = "Edit",
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.clickable {  }
-                    )
-                    "Notes" -> Image(
-                        imageVector = Icons.Outlined.Pending,
-                        contentDescription = null,
-                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary),
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clickable { notesViewModel.openNotesAndSharedPending = true }
-                    )
-                    "Shared" -> Image(
-                        imageVector = Icons.Outlined.Pending,
-                        contentDescription = null,
-                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary),
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clickable { notesViewModel.openNotesAndSharedPending = true }
-                    )
-                    "All iCloud" -> Image(
-                        imageVector = Icons.Outlined.Pending,
-                        contentDescription = null,
-                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary),
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clickable { notesViewModel.openAlliCloudPending = true }
-                    )
-                    else -> Row {
+            Box {
+                Row(
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    when (parentFolder) {
+                        "Recently Deleted" -> Text(
+                            text = "Edit",
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.clickable { }
+                        )
+                        "Notes" -> Icon(
+                            imageVector = Icons.Outlined.Pending,
+                            contentDescription = null,
+                            tint = if (openNotesAndSharedPending) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clickable { openNotesAndSharedPending = true }
+                        )
+                        "Shared" -> Icon(
+                            imageVector = Icons.Outlined.Pending,
+                            contentDescription = null,
+                            tint = if (openNotesAndSharedPending) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clickable { openNotesAndSharedPending = true }
+                        )
+                        "All iCloud" -> Icon(
+                            imageVector = Icons.Outlined.Pending,
+                            contentDescription = null,
+                            tint = if (openAlliCloudPending) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clickable { openAlliCloudPending = true }
+                        )
+                        else -> {
+                            Row {
 //                        Icon(
 //                            imageVector = Icons.Default.IosShare, contentDescription = null,
 //                            tint = Orange,
 //                            modifier = Modifier.size(36.dp)
 //                        )
 //                        Spacer(modifier = Modifier.width(16.dp))
-                        Image(
-                            imageVector = Icons.Outlined.Pending,
-                            contentDescription = null,
-                            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary),
+                                Icon(
+                                    imageVector = Icons.Outlined.Pending,
+                                    contentDescription = null,
+                                    tint = if (openDefaultPending) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clickable { openDefaultPending = true }
+                                )
+                            }
+                        }
+                    }
+                    if (openDefaultPending){
+                        DropdownMenu(
+                            expanded = openDefaultPending,
+                            onDismissRequest = { openDefaultPending = false },
                             modifier = Modifier
-                                .size(36.dp)
-                                .clickable { notesViewModel.openDefaultPending = true }
-                        )
+                                .clip(MaterialTheme.shapes.small)
+                                .background(MaterialTheme.colorScheme.surface)
+                        ) {
+                            DropdownMenuItem(text = { Text(text = "View as Gallery") }, onClick = { /*TODO*/ })
+                            Divider()
+                            DropdownMenuItem(text = { Text(text = "Share Folder") }, onClick = { /*TODO*/ })
+                            Divider()
+                            DropdownMenuItem(text = { Text(text = "Add Folder") }, onClick = { /*TODO*/ })
+                            Divider()
+                            DropdownMenuItem(text = { Text(text = "Move This Folder") }, onClick = { /*TODO*/ })
+                            Divider()
+                            DropdownMenuItem(text = { Text(text = "Rename") }, onClick = { /*TODO*/ })
+                            Divider()
+                            DropdownMenuItem(text = { Text(text = "Select Notes") }, onClick = { /*TODO*/ })
+                            Divider()
+                            DropdownMenuItem(text = { Text(text = "Sort By") }, onClick = { /*TODO*/ })
+                            Divider()
+                            DropdownMenuItem(text = { Text(text = "Group By Date") }, onClick = { /*TODO*/ })
+                            Divider()
+                            DropdownMenuItem(text = { Text(text = "View Attachments") }, onClick = { /*TODO*/ })
+                            Divider()
+                            DropdownMenuItem(text = { Text(text = "Convert to Smart Folder") }, onClick = { /*TODO*/ })
+                        }
+                    } else if (openAlliCloudPending){
+                        DropdownMenu(
+                            expanded = openAlliCloudPending,
+                            onDismissRequest = { openAlliCloudPending = false },
+                            modifier = Modifier.clip(MaterialTheme.shapes.small)
+                        ) {
+                            DropdownMenuItem(text = { Text(text = "View as Gallery") }, onClick = { /*TODO*/ })
+                            Divider()
+                            DropdownMenuItem(text = { Text(text = "Select Notes") }, onClick = { /*TODO*/ })
+                            Divider()
+                            DropdownMenuItem(text = { Text(text = "View Attachments") }, onClick = { /*TODO*/ })
+                        }
+                    } else if (openNotesAndSharedPending){
+                        DropdownMenu(
+                            expanded = openNotesAndSharedPending,
+                            onDismissRequest = { openNotesAndSharedPending = false },
+                            modifier = Modifier.clip(MaterialTheme.shapes.small)
+                        ) {
+                            DropdownMenuItem(text = { Text(text ="View as Gallery") }, onClick = { /*TODO*/ })
+                            Divider()
+                            DropdownMenuItem(text = { Text(text = "Select Notes") }, onClick = { /*TODO*/ })
+                            Divider()
+                            DropdownMenuItem(text = { Text(text = "Sort By") }, onClick = { /*TODO*/ })
+                            Divider()
+                            DropdownMenuItem(text = { Text(text = "Group By Date") }, onClick = { /*TODO*/ })
+                            Divider()
+                            DropdownMenuItem(text = { Text(text = "View Attachments") }, onClick = { /*TODO*/ })
+                        }
                     }
                 }
             }
         },
         navigationIcon = {
             IconButton(
-                onClick = {
-                    navigator.popBackStack()
-//                    if(parentFolder != "Folders") {
-//                        val currentNote = state.notes.last()
-//                        if (currentNote.title.isEmpty() && currentNote.textBody.isEmpty()) {
-//                            notesViewModel.deleteNote(currentNote.id)
-//                        }
-//                        navigator.navigate(NavigationRoutes.FolderDetail.withArgs(parentFolder))
-//                    } else {
-//                        navigator.navigate(NavigationRoutes.MainScreen.route)
-//                    }
-                }
+                onClick = { navigator.popBackStack() }
             ) {
                 Icon(imageVector = Icons.Default.KeyboardArrowLeft, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             }
         }
     )
 }
-
-@Composable
-fun AlliCloudPending(notesViewModel: NotesViewModel) {
-    DropdownMenu(
-        expanded = notesViewModel.openAlliCloudPending,
-        onDismissRequest = { notesViewModel.openAlliCloudPending = false },
-        modifier = Modifier.clip(MaterialTheme.shapes.small)
-    ) {
-        DropdownMenuItem(text = { Text(text = "View as Gallery") }, onClick = { /*TODO*/ })
-        Divider()
-        DropdownMenuItem(text = { Text(text = "Select Notes") }, onClick = { /*TODO*/ })
-        Divider()
-        DropdownMenuItem(text = { Text(text = "View Attachments") }, onClick = { /*TODO*/ })
-    }
-}
-
-@Composable
-fun NotesAndSharedPending(notesViewModel: NotesViewModel) {
-    DropdownMenu(
-        expanded = notesViewModel.openNotesAndSharedPending,
-        onDismissRequest = { notesViewModel.openNotesAndSharedPending = false },
-        modifier = Modifier.clip(MaterialTheme.shapes.small)
-    ) {
-        DropdownMenuItem(text = { Text(text ="View as Gallery") }, onClick = { /*TODO*/ })
-        Divider()
-        DropdownMenuItem(text = { Text(text = "Select Notes") }, onClick = { /*TODO*/ })
-        Divider()
-        DropdownMenuItem(text = { Text(text = "Sort By") }, onClick = { /*TODO*/ })
-        Divider()
-        DropdownMenuItem(text = { Text(text = "Group By Date") }, onClick = { /*TODO*/ })
-        Divider()
-        DropdownMenuItem(text = { Text(text = "View Attachments") }, onClick = { /*TODO*/ })
-    }
-}
-
-@Composable
-fun DefaultPending(notesViewModel: NotesViewModel) {
-    DropdownMenu(
-        expanded = notesViewModel.openDefaultPending,
-        onDismissRequest = { notesViewModel.openDefaultPending = false },
-        modifier = Modifier
-            .clip(MaterialTheme.shapes.small)
-            .background(MaterialTheme.colorScheme.surface)
-    ) {
-        DropdownMenuItem(text = { Text(text = "View as Gallery") }, onClick = { /*TODO*/ })
-        Divider()
-        DropdownMenuItem(text = { Text(text = "Share Folder") }, onClick = { /*TODO*/ })
-        Divider()
-        DropdownMenuItem(text = { Text(text = "Add Folder") }, onClick = { /*TODO*/ })
-        Divider()
-        DropdownMenuItem(text = { Text(text = "Move This Folder") }, onClick = { /*TODO*/ })
-        Divider()
-        DropdownMenuItem(text = { Text(text = "Rename") }, onClick = { /*TODO*/ })
-        Divider()
-        DropdownMenuItem(text = { Text(text = "Select Notes") }, onClick = { /*TODO*/ })
-        Divider()
-        DropdownMenuItem(text = { Text(text = "Sort By") }, onClick = { /*TODO*/ })
-        Divider()
-        DropdownMenuItem(text = { Text(text = "Group By Date") }, onClick = { /*TODO*/ })
-        Divider()
-        DropdownMenuItem(text = { Text(text = "View Attachments") }, onClick = { /*TODO*/ })
-        Divider()
-        DropdownMenuItem(text = { Text(text = "Convert to Smart Folder") }, onClick = { /*TODO*/ })
-    }
-}
+//
+//@Composable
+//fun AlliCloudPending(notesViewModel: NotesViewModel) {
+//    DropdownMenu(
+//        expanded = notesViewModel.openAlliCloudPending,
+//        onDismissRequest = { notesViewModel.openAlliCloudPending = false },
+//        modifier = Modifier.clip(MaterialTheme.shapes.small)
+//    ) {
+//        DropdownMenuItem(text = { Text(text = "View as Gallery") }, onClick = { /*TODO*/ })
+//        Divider()
+//        DropdownMenuItem(text = { Text(text = "Select Notes") }, onClick = { /*TODO*/ })
+//        Divider()
+//        DropdownMenuItem(text = { Text(text = "View Attachments") }, onClick = { /*TODO*/ })
+//    }
+//}
+//
+//@Composable
+//fun NotesAndSharedPending(notesViewModel: NotesViewModel) {
+//    DropdownMenu(
+//        expanded = notesViewModel.openNotesAndSharedPending,
+//        onDismissRequest = { notesViewModel.openNotesAndSharedPending = false },
+//        modifier = Modifier.clip(MaterialTheme.shapes.small)
+//    ) {
+//        DropdownMenuItem(text = { Text(text ="View as Gallery") }, onClick = { /*TODO*/ })
+//        Divider()
+//        DropdownMenuItem(text = { Text(text = "Select Notes") }, onClick = { /*TODO*/ })
+//        Divider()
+//        DropdownMenuItem(text = { Text(text = "Sort By") }, onClick = { /*TODO*/ })
+//        Divider()
+//        DropdownMenuItem(text = { Text(text = "Group By Date") }, onClick = { /*TODO*/ })
+//        Divider()
+//        DropdownMenuItem(text = { Text(text = "View Attachments") }, onClick = { /*TODO*/ })
+//    }
+//}
+//
+//@Composable
+//fun DefaultPending(notesViewModel: NotesViewModel) {
+//    DropdownMenu(
+//        expanded = notesViewModel.openDefaultPending,
+//        onDismissRequest = { notesViewModel.openDefaultPending = false },
+//        modifier = Modifier
+//            .clip(MaterialTheme.shapes.small)
+//            .background(MaterialTheme.colorScheme.surface)
+//    ) {
+//        DropdownMenuItem(text = { Text(text = "View as Gallery") }, onClick = { /*TODO*/ })
+//        Divider()
+//        DropdownMenuItem(text = { Text(text = "Share Folder") }, onClick = { /*TODO*/ })
+//        Divider()
+//        DropdownMenuItem(text = { Text(text = "Add Folder") }, onClick = { /*TODO*/ })
+//        Divider()
+//        DropdownMenuItem(text = { Text(text = "Move This Folder") }, onClick = { /*TODO*/ })
+//        Divider()
+//        DropdownMenuItem(text = { Text(text = "Rename") }, onClick = { /*TODO*/ })
+//        Divider()
+//        DropdownMenuItem(text = { Text(text = "Select Notes") }, onClick = { /*TODO*/ })
+//        Divider()
+//        DropdownMenuItem(text = { Text(text = "Sort By") }, onClick = { /*TODO*/ })
+//        Divider()
+//        DropdownMenuItem(text = { Text(text = "Group By Date") }, onClick = { /*TODO*/ })
+//        Divider()
+//        DropdownMenuItem(text = { Text(text = "View Attachments") }, onClick = { /*TODO*/ })
+//        Divider()
+//        DropdownMenuItem(text = { Text(text = "Convert to Smart Folder") }, onClick = { /*TODO*/ })
+//    }
+//}
 
 @Composable
 fun NotesBottomBar(modifier: Modifier = Modifier, parentFolder: String, navigator: NavHostController, notesViewModel: NotesViewModel) {//title: String?
-    val isDeletedFolder by remember {
-        mutableStateOf(parentFolder == "Recently Deleted")
-    }
-
     val state by notesViewModel.allNotesState.collectAsState()
-    val countNotes = if(!isDeletedFolder) state.notes.size else state.deletedNotes.size
+    val countNotes = when(parentFolder){
+        "Shared" -> state.sharedNotes.size
+        "All iCloud" -> state.allNotes.size
+        "Notes" -> {
+            val state by notesViewModel.allInNotes.collectAsState()
+            state.size
+        }
+        "Recently Deleted" -> state.deletedNotes.size
+        else -> state.notes.size
+    }
 
     if(notesViewModel.openCreateNoteDialog){
 //        notesViewModel.opensDialog()
@@ -306,14 +349,12 @@ fun NotesBottomBar(modifier: Modifier = Modifier, parentFolder: String, navigato
             modifier = Modifier
                 .fillMaxWidth()
         ) {
-            if(countNotes > 0) {
-                Text(
-                    text = "$countNotes Notes",
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.weight(1f),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
+            Text(
+                text = if(countNotes > 0) "$countNotes Notes" else "No Notes",
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(1f),
+                color = MaterialTheme.colorScheme.onSurface
+            )
             Icon(
                 painter = painterResource(id = R.drawable.edit_square_fill0_wght400_grad0_opsz24),
                 contentDescription = null,
@@ -336,6 +377,7 @@ fun AddNoteDialog(notesViewModel : NotesViewModel, parentFolder: String) {
     var newNoteTitle by remember {mutableStateOf("")}
     AlertDialog(
         onDismissRequest = {notesViewModel.openCreateNoteDialog = false},
+        containerColor = MaterialTheme.colorScheme.background,
         confirmButton = {
                         Box(
                             modifier = Modifier.fillMaxWidth(),
@@ -416,23 +458,16 @@ fun Note(title: String, date: String, firstLine: String, index: Int, navigator: 
     var showMenu by remember {
         mutableStateOf(false)
     }
-    ElevatedCard(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
                 onClick = { navigator.navigate(NavigationRoutes.NoteDetail.withArgs(index)) },
                 onLongClick = { showMenu = true }
-            ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 6.dp
-        ),
-        shape = MaterialTheme.shapes.small,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiary,
-            disabledContainerColor = MaterialTheme.colorScheme.tertiary,
-            disabledContentColor = MaterialTheme.colorScheme.onSurface,
-            contentColor = MaterialTheme.colorScheme.onSurface
-        ),
+            )
+            .shadow(elevation = 6.dp, shape = MaterialTheme.shapes.small)
+            .clip(MaterialTheme.shapes.small)
+            .background(MaterialTheme.colorScheme.tertiary),
     ) {
         Column(
             modifier = Modifier.padding(start = 24.dp, top = 8.dp, bottom = 8.dp)

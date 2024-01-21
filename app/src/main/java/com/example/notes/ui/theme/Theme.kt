@@ -2,6 +2,7 @@ package com.example.notes.ui.theme
 
 import android.app.Activity
 import android.os.Build
+import android.view.View
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -22,7 +23,8 @@ private val DarkColorScheme = darkColorScheme(
     surface = Color.DarkGray,
     onSurface = Color.White,
     background = Color.Black,
-    tertiary = Color.DarkGray
+    tertiary = Color.DarkGray,
+    onTertiary = Color.Gray
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -45,7 +47,7 @@ private val LightColorScheme = lightColorScheme(
 fun NotesTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = false,
+    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -61,12 +63,15 @@ fun NotesTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
+            val controller = WindowCompat.getInsetsController(window, view)
+            controller.isAppearanceLightStatusBars = !darkTheme
             if(darkTheme) {
-                window.statusBarColor = Color.Transparent.toArgb()
+                window.statusBarColor = DarkColorScheme.background.toArgb()
+                window.navigationBarColor = DarkColorScheme.background.toArgb()
             } else {
-                window.statusBarColor = Color.Black.toArgb()
+                window.statusBarColor = LightColorScheme.background.toArgb()
+                window.navigationBarColor = LightColorScheme.background.toArgb()
             }
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkTheme
         }
     }
 

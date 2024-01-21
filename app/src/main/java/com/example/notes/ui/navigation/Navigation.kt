@@ -1,5 +1,14 @@
 package com.example.notes.ui.navigation
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,19 +31,69 @@ fun Navigation(folderViewModel: FolderViewModel, notesViewModel: NotesViewModel)
     val navigator = rememberNavController()
     var parentFolder by remember{ mutableStateOf("Folders") }
 
+    var backToFolderStateEnter by remember{ mutableStateOf(true) }
+    var backToFolderStateExit by remember{ mutableStateOf(true) }
+
     NavHost(navController = navigator, startDestination = NavigationRoutes.MainScreen.route){
-        composable(
-            NavigationRoutes.MainScreen.route){
-            MainScreen(navigator = navigator, folderViewModel = folderViewModel, notesViewModel = notesViewModel
-            )
+        composable(NavigationRoutes.MainScreen.route)
+        {
+            backToFolderStateEnter = true
+            backToFolderStateExit = true
+            MainScreen(navigator = navigator, folderViewModel = folderViewModel, notesViewModel = notesViewModel)
         }
-        composable(NavigationRoutes.FolderDetail.route + "/{name}", arguments = listOf(navArgument("name"){type = NavType.StringType})){
+        composable(NavigationRoutes.FolderDetail.route + "/{name}", arguments = listOf(navArgument("name"){type = NavType.StringType}),
+            enterTransition = {
+                if(backToFolderStateEnter) {
+                    backToFolderStateEnter = false
+                    slideInHorizontally(
+                        initialOffsetX = { it },
+                        animationSpec = tween(durationMillis = 500, delayMillis = 100)
+                    ) + expandHorizontally()
+                } else {
+                    EnterTransition.None
+                }
+                              },
+            exitTransition = {
+                if(backToFolderStateExit) {
+                    slideOutHorizontally(
+                        targetOffsetX = { it },
+                        animationSpec = tween(durationMillis = 500, delayMillis = 100)
+                    )
+                } else {
+                    backToFolderStateExit = true
+                    ExitTransition.None
+                }
+            }
+            )
+        {
                 backStackEntry -> backStackEntry.arguments?.let {
             parentFolder = it.getString("name").toString()
             notesViewModel.changeParentFolder(parentFolder)
-            FolderNotesScreen(parentFolder = parentFolder, navigator = navigator, notesViewModel = notesViewModel)
+            FolderNotesScreen(
+                parentFolder = parentFolder,
+                navigator = navigator,
+                notesViewModel = notesViewModel
+            )
         } }
-        composable(NavigationRoutes.NoteDetail.route + "/{index}", arguments = listOf(navArgument("index"){type = NavType.IntType})){
+        composable(
+            NavigationRoutes.NoteDetail.route + "/{index}",
+            arguments = listOf(navArgument("index"){type = NavType.IntType}),
+            enterTransition = {
+                backToFolderStateEnter = true
+                backToFolderStateExit = false
+                slideInHorizontally(
+                    initialOffsetX = {it},
+                    animationSpec = tween(durationMillis = 500, delayMillis = 100)
+                ) + expandHorizontally()
+            },
+            exitTransition = {
+                slideOutHorizontally(
+                    targetOffsetX = {it},
+                    animationSpec = tween(durationMillis = 500, delayMillis = 100)
+                ) //+ shrinkHorizontally()
+            }
+        )
+        {
                 backStackEntry -> backStackEntry.arguments?.let {
             val index = it.getInt("index")
             //val currentNote: Note = notesViewModel.getNote(id = index, folderTitle = parentFolder)

@@ -12,5 +12,4 @@ data class Folder (
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val title: String
-    //var countNotes: Int = 0
 )

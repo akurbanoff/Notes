@@ -10,9 +10,8 @@ data class NoteState(
     val sharedNotes: List<Note> = emptyList(),
     val date: String = "Today",
     val title: String = "",
-    val firstLine: String = "",
+    val firstLine: String = "No additional text",
     val textBody: String = "",
     var parentFolder: String = "",
-    val notesAmount: Int = 0,
     val sortType: SortType = SortType.DEFAULT_DATE_EDITED
 )

@@ -4,6 +4,7 @@ import androidx.lifecycle.LiveData
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import com.example.notes.db.models.Folder
 import kotlinx.coroutines.flow.Flow
 
@@ -25,7 +26,10 @@ interface FolderDao {
     fun getFolderByTitle(title: String): Folder
 
     @Query("delete from folders where title = :title")
-    fun deleteFolderByTitle(title: String)
+    fun deleteFolder(title: String)
+
+    @Query("delete from folders where id = :id")
+    fun deleteFolder(id: Int)
 
     @Query("update notes set isDeleted = :isDeleted where parentFolder = :parentFolder")
     fun deleteNotesFromFolder(parentFolder: String, isDeleted: Boolean = true)
@@ -35,4 +39,10 @@ interface FolderDao {
 
     @Query("Update notes set parentFolder = :newParentFolder where parentFolder = :oldParentFolder")
     fun renameNotesParentFolder(oldParentFolder: String, newParentFolder: String)
+
+//    @Query("update folders set id = :to where title = :toTitle")
+//    fun changeIndexWhileDrag(from: Int, to: Int, fromTitle: String, toTitle: String)
+
+    @Query("UPDATE folders SET id = :newId WHERE id = :oldId")
+    fun updateFolderIndex(oldId: Int, newId: Int)
 }

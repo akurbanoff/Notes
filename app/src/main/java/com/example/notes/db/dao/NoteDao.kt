@@ -29,8 +29,17 @@ interface NoteDao {
     @Query("update notes set isDeleted = :isDeleted where id = :id")
     fun changeNoteStatusToDeleted(id: Int, isDeleted: Boolean = true)
 
-    @Query("Select count(id) from notes where parentFolder = :title")
-    fun getNotesAmount(title: String): Flow<Int>
+    @Query("Select count(id) from notes where parentFolder = :title and isDeleted = :isDeleted")
+    fun getNotesAmount(title: String, isDeleted: Boolean = false): Flow<Int>
+
+    @Query("select count(id) from notes where isDeleted = :isDeleted")
+    fun getDeletedNotesAmount(isDeleted: Boolean = true): Flow<Int>
+
+    @Query("select count(id) from notes where isShared = :isShared")
+    fun getSharedNotesAmount(isShared: Boolean = true): Flow<Int>
+
+    @Query("select count(id) from notes where isDeleted = :isDeleted")
+    fun getAlliCloudNotesAmount(isDeleted: Boolean = false): Flow<Int>
 
     @Query("select * from notes where id = :noteId AND parentFolder = :folderTitle")
     fun getNoteById(noteId: Int, folderTitle: String): Note

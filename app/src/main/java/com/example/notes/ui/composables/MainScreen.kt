@@ -1,6 +1,7 @@
 package com.example.notes.ui.composables
 
 import android.annotation.SuppressLint
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -86,13 +87,11 @@ import kotlinx.coroutines.launch
 fun MainScreen(navigator: NavHostController, folderViewModel: FolderViewModel, notesViewModel: NotesViewModel) {
     val scrollState = rememberScrollState()
     var isSearchBarVisible by remember{ mutableStateOf(true) }
-    val sharedFolder = Folder(title = "Shared")
 
     //if(scrollState.isScrollInProgress){isSearchBarVisible = true}
-
     if(folderViewModel.startEditMode == false){
-        DefaultMainScreen(folderViewModel = folderViewModel, notesViewModel = notesViewModel, navigator = navigator, sharedFolder = sharedFolder)
+        DefaultMainScreen(folderViewModel = folderViewModel, notesViewModel = notesViewModel, navigator = navigator)
     } else {
-        EditMainScreen(folderViewModel = folderViewModel, notesViewModel = notesViewModel, navigator = navigator, sharedFolder = sharedFolder)
+        EditMainScreen(folderViewModel = folderViewModel, notesViewModel = notesViewModel)
     }
 }
