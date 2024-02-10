@@ -1,7 +1,7 @@
 package com.example.notes.ui.composables.main_screen_modes
 
 import android.annotation.SuppressLint
-import android.util.Log
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -18,10 +18,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -38,13 +36,10 @@ import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.PersonPin
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Pending
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -58,24 +53,22 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.AbsoluteAlignment
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavHostController
 import com.example.notes.db.models.Folder
@@ -83,7 +76,6 @@ import com.example.notes.ui.navigation.NavigationRoutes
 import com.example.notes.ui.view_models.FolderViewModel
 import com.example.notes.ui.view_models.NotesViewModel
 import com.example.notes.utils.DefaultFolders
-import com.example.notes.utils.collectFoldersName
 import com.skydoves.flexible.bottomsheet.material3.FlexibleBottomSheet
 import com.skydoves.flexible.core.FlexibleSheetSize
 import com.skydoves.flexible.core.FlexibleSheetState
@@ -94,7 +86,6 @@ import kotlinx.coroutines.flow.StateFlow
 @Composable
 fun DefaultMainScreen(folderViewModel: FolderViewModel, notesViewModel: NotesViewModel, navigator: NavHostController) {
     var isSearchBarVisible by remember{ mutableStateOf(true) }
-    val notesState by notesViewModel.allNotesState.collectAsState()
 
     Scaffold(
         modifier = Modifier
@@ -198,7 +189,6 @@ fun FolderList(modifier: Modifier = Modifier, navigator: NavHostController, fold
                         notesViewModel = notesViewModel,
                         hasMenu = true,
                         _notesAmount = notesAmount
-                        //notesAmount = notesViewModel.getNotesAmount(item.title)
                     )
                 }
                 item{
@@ -219,7 +209,7 @@ fun FolderList(modifier: Modifier = Modifier, navigator: NavHostController, fold
 }
 
 @SuppressLint("CoroutineCreationDuringComposition")
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FolderElement(
     modifier: Modifier = Modifier, id: Int = 999, title: String, icon: ImageVector,
@@ -232,7 +222,9 @@ fun FolderElement(
         modifier = modifier
             .fillMaxWidth()
             .combinedClickable(
-                onClick = { navigator.navigate(NavigationRoutes.FolderDetail.withArgs(title)) },
+                onClick = {
+                    navigator.navigate(NavigationRoutes.FolderDetail.withArgs(title))
+                },
                 onLongClick = {
                     showMenu = true
                 }
@@ -257,9 +249,8 @@ fun FolderElement(
                 horizontalArrangement = Arrangement.End
             ) {
                 val notesAmount by _notesAmount.collectAsState()
-                Log.d("folder", "$title - ${notesAmount.toString()}")
                 Text(
-                    text = notesAmount.toString(), //количество заметок в этой папке
+                    text = notesAmount.toString(),
                     textAlign = TextAlign.End,
                     color = MaterialTheme.colorScheme.secondary
                 )
@@ -272,6 +263,7 @@ fun FolderElement(
         }
     }
     val notes by notesViewModel.getNotes(title).collectAsState()
+    val context = LocalContext.current
     if(showMenu && hasMenu) {
         AlertDialog(
             modifier = Modifier.clickable { navigator.navigate(NavigationRoutes.FolderDetail.withArgs(title)) },
@@ -289,7 +281,7 @@ fun FolderElement(
                 }
             },
             text = {
-                Box() {
+                Box {
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(2),
                         userScrollEnabled = false,
@@ -304,7 +296,7 @@ fun FolderElement(
                         }
                     }
                     DropdownMenu(
-                        expanded = showMenu && hasMenu,
+                        expanded = showMenu,
                         modifier = Modifier
                             .clip(MaterialTheme.shapes.small)
                             .background(MaterialTheme.colorScheme.surface),
@@ -312,7 +304,7 @@ fun FolderElement(
                     ) {
                         DropdownMenuItem(
                             text = { Text(text = "Move") },
-                            onClick = { /*TODO*/ },
+                            onClick = { Toast.makeText(context, "This function is developing", Toast.LENGTH_SHORT).show() },
                             trailingIcon = {
                                 Icon(
                                     imageVector = Icons.Default.FolderOpen,
@@ -365,7 +357,11 @@ fun FolderElement(
 @Composable
 fun PreviewWindowElement(modifier: Modifier = Modifier, title: String, textBody: String) {
     Box(
-        modifier = modifier.size(height = 120.dp, width = 100.dp).clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.tertiary).padding(8.dp)
+        modifier = modifier
+            .size(height = 120.dp, width = 100.dp)
+            .clip(MaterialTheme.shapes.medium)
+            .background(MaterialTheme.colorScheme.tertiary)
+            .padding(8.dp)
     ) {
         Column {
             Text(text = title)
@@ -374,7 +370,6 @@ fun PreviewWindowElement(modifier: Modifier = Modifier, title: String, textBody:
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RenameDialog(id: Int, currentName: String, folderViewModel: FolderViewModel) {
     val state by folderViewModel.folders.collectAsState()
@@ -387,7 +382,6 @@ fun RenameDialog(id: Int, currentName: String, folderViewModel: FolderViewModel)
     }
 
     var newFolderTitle by remember{ mutableStateOf(currentFolder.title) }
-    //val isNewFolderTitleEmpty by remember{ mutableStateOf(newFolderTitle.isEmpty()) }
     AlertDialog(
         containerColor = MaterialTheme.colorScheme.background,
         title = {
@@ -516,7 +510,7 @@ fun BottomBar(modifier: Modifier = Modifier, folderViewModel: FolderViewModel) {
 }
 @Composable
 fun CreateFolderAlertDialog(folderViewModel: FolderViewModel) {
-    var countEmptyFolders by remember {mutableStateOf(1)}
+    var countEmptyFolders by remember {mutableIntStateOf(1)}
     val folders by folderViewModel.folders.collectAsState()
 
     for (folder in folders.folders) {
@@ -595,11 +589,9 @@ fun CreateFolderAlertDialog(folderViewModel: FolderViewModel) {
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateFolderDialog(modifier: Modifier = Modifier, folderViewModel: FolderViewModel, sheetState: FlexibleSheetState) {
-    var countEmptyFolders by remember {mutableStateOf(1)}
-    //val state by folderViewModel.folderState.collectAsState()
+    var countEmptyFolders by remember { mutableIntStateOf(1) }
     val folders by folderViewModel.folders.collectAsState()
 
     for (folder in folders.folders) {

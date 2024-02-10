@@ -18,7 +18,7 @@ sealed class NavigationRoutes(val route: String){
         return buildString {
             append(route)
             args.forEach {arg ->
-                append("/${arg.toString()}")
+                append("/$arg")
             }
         }
     }

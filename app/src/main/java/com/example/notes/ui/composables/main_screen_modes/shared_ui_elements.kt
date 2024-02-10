@@ -1,8 +1,6 @@
 package com.example.notes.ui.composables.main_screen_modes
 
-import androidx.compose.animation.core.MutableTransitionState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,13 +21,11 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -87,15 +83,16 @@ fun TopBar(modifier: Modifier = Modifier, isEditModeStart: Boolean, folderViewMo
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchBar(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
     TextField(
         value = "",
         shape = MaterialTheme.shapes.small,
         onValueChange = {},
         modifier = modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .clickable { Toast.makeText(context, "This function is developing", Toast.LENGTH_SHORT).show() },
         //.height(36.dp),
         leadingIcon = {
             Icon(

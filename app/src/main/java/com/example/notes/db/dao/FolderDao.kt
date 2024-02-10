@@ -1,10 +1,8 @@
 package com.example.notes.db.dao
 
-import androidx.lifecycle.LiveData
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
-import androidx.room.Update
 import com.example.notes.db.models.Folder
 import kotlinx.coroutines.flow.Flow
 
@@ -39,9 +37,6 @@ interface FolderDao {
 
     @Query("Update notes set parentFolder = :newParentFolder where parentFolder = :oldParentFolder")
     fun renameNotesParentFolder(oldParentFolder: String, newParentFolder: String)
-
-//    @Query("update folders set id = :to where title = :toTitle")
-//    fun changeIndexWhileDrag(from: Int, to: Int, fromTitle: String, toTitle: String)
 
     @Query("UPDATE folders SET id = :newId WHERE id = :oldId")
     fun updateFolderIndex(oldId: Int, newId: Int)

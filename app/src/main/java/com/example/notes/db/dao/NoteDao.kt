@@ -1,21 +1,17 @@
 package com.example.notes.db.dao
 
 import androidx.room.Dao
-import androidx.room.Delete
-import androidx.room.Insert
 import androidx.room.Query
-import androidx.room.Update
-import androidx.room.Upsert
 import com.example.notes.db.models.Note
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface NoteDao {
-    @Query("Select * from notes where parentFolder = :parentFolder and isDeleted = :isDeleted")
-    fun getAll(parentFolder: String, isDeleted: Boolean = false): Flow<List<Note>>
+    @Query("Select * from notes where parentFolder = :parentFolder and isDeleted = :isDeleted and isPinned = :isPinned")
+    fun getAll(parentFolder: String, isDeleted: Boolean = false, isPinned: Boolean = false): Flow<List<Note>>
 
-    @Query("select * from notes where isDeleted = :isDeleted")
-    fun getAll(isDeleted: Boolean): Flow<List<Note>>
+    @Query("select * from notes where isDeleted = :isDeleted and isPinned = :isPinned")
+    fun getAll(isDeleted: Boolean, isPinned: Boolean = false): Flow<List<Note>>
 
     @Query("select * from notes where isShared = :isShared")
     fun getAllShared(isShared: Boolean): Flow<List<Note>>
@@ -67,4 +63,13 @@ interface NoteDao {
 
     @Query("SELECT * FROM notes WHERE parentFolder = :parentFolder ORDER BY title")
     fun sortNoteByTitle(parentFolder: String): Flow<List<Note>>
+
+    @Query("update notes set isDeleted = :isDeleted, parentFolder = :parentFolder where id = :id")
+    fun recoverNote(id: Int, isDeleted: Boolean = false, parentFolder: String = "Notes")
+
+    @Query("update notes set isPinned = :isPinned where id = :id")
+    fun pinNote(id: Int, isPinned: Boolean = true)
+
+    @Query("update notes set isPinned = :isPinned where id = :id")
+    fun unpinNote(id: Int, isPinned: Boolean = false)
 }
